@@ -42,11 +42,13 @@ import {
   hackathonService,
   HackathonRegistration,
   HackathonSettings,
+  ProjectSubmission
 } from '@/services/hackathonService';
 
 export const AdminHackathon: React.FC = () => {
   const { toast } = useToast();
   const [registrations, setRegistrations] = useState<HackathonRegistration[]>([]);
+  const [submissions, setSubmissions] = useState<ProjectSubmission[]>([]);
   const [settings, setSettings] = useState<HackathonSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,12 +78,14 @@ export const AdminHackathon: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [regs, cfg] = await Promise.all([
+      const [regs, cfg, subs] = await Promise.all([
         hackathonService.getRegistrations(),
         hackathonService.getSettings(),
+        hackathonService.getAllProjectSubmissions(),
       ]);
       setRegistrations(regs);
       setSettings(cfg);
+      setSubmissions(subs);
 
       setEventDate(cfg.event_date);
       setCountdownTarget(cfg.countdown_target);
@@ -267,8 +271,9 @@ export const AdminHackathon: React.FC = () => {
 
       {/* TABS: REGISTRATIONS vs CONTENT MANAGEMENT */}
       <Tabs defaultValue="registrations" className="space-y-6">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2">
+        <TabsList className="grid w-full sm:w-auto grid-cols-3">
           <TabsTrigger value="registrations">Registration Management</TabsTrigger>
+          <TabsTrigger value="submissions">Project Submissions</TabsTrigger>
           <TabsTrigger value="content">Content & Settings</TabsTrigger>
         </TabsList>
 
@@ -449,7 +454,79 @@ export const AdminHackathon: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: CONTENT & SETTINGS MANAGEMENT */}
+        {/* TAB 2: PROJECT SUBMISSIONS */}
+        <TabsContent value="submissions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Submissions</CardTitle>
+              <CardDescription>View and review all submitted projects.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/60 text-xs font-semibold uppercase text-muted-foreground">
+                    <tr>
+                      <th className="p-3">Team Details</th>
+                      <th className="p-3">GitHub</th>
+                      <th className="p-3">LinkedIn</th>
+                      <th className="p-3">Vercel</th>
+                      <th className="p-3">Submitted At</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {submissions.length > 0 ? (
+                      submissions.map((sub) => {
+                        const team = registrations.find(r => r.team_id === sub.team_id);
+                        return (
+                          <tr key={sub.id || sub.team_id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="font-bold text-foreground">{team?.team_name || 'Unknown Team'}</div>
+                              <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
+                                {sub.team_id}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <a href={sub.github_link} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3"/> View Repo
+                              </a>
+                            </td>
+                            <td className="p-3">
+                              <a href={sub.linkedin_link} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3"/> View Post
+                              </a>
+                            </td>
+                            <td className="p-3">
+                              <a href={sub.vercel_link} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3"/> View Site
+                              </a>
+                            </td>
+                            <td className="p-3 text-xs text-muted-foreground">
+                              {new Date(sub.submitted_at || Date.now()).toLocaleString()}
+                            </td>
+                            <td className="p-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                {sub.status || 'SUBMITTED'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                          No project submissions found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: CONTENT & SETTINGS MANAGEMENT */}
         <TabsContent value="content" className="space-y-6">
           <Card>
             <CardHeader>

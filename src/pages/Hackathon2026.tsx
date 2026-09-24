@@ -45,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import AICanvasBackground from '@/components/hackathon/AICanvasBackground';
 import RegistrationModal from '@/components/hackathon/RegistrationModal';
 import TicketCanvas from '@/components/hackathon/TicketCanvas';
+import ProjectSubmissionPhase from '@/components/hackathon/ProjectSubmissionPhase';
 import {
   hackathonService,
   HackathonSettings,
@@ -212,6 +213,9 @@ export const Hackathon2026: React.FC = () => {
             </a>
             <a href="#timeline" className="hover:text-cyan-400 transition-colors">
               Timeline
+            </a>
+            <a href="#submission" className="hover:text-emerald-400 transition-colors text-emerald-300 font-bold">
+              Submit Project
             </a>
             <a href="#tools" className="hover:text-cyan-400 transition-colors">
               AI Tools
@@ -937,6 +941,25 @@ export const Hackathon2026: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* PROJECT SUBMISSION SECTION */}
+      <section id="submission" className="py-20 px-4 sm:px-6 relative z-10 bg-slate-950/80">
+        <div className="max-w-4xl mx-auto space-y-12">
+            <div className="text-center space-y-3">
+              <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
+                Project Submission
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-white">
+                Submit Your Project
+              </h2>
+              <p className="text-sm text-slate-400 max-w-lg mx-auto">
+                Ready to submit your hard work? Enter your details below.
+              </p>
+            </div>
+            
+            <ProjectSubmissionPhase />
         </div>
       </section>
 

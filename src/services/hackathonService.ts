@@ -32,6 +32,18 @@ export interface HackathonRegistration {
   updated_at?: string;
 }
 
+export interface ProjectSubmission {
+  id?: string;
+  team_id: string;
+  github_link: string;
+  linkedin_link: string;
+  vercel_link: string;
+  status?: string;
+  user_id?: string;
+  submitted_at?: string;
+  updated_at?: string;
+}
+
 export interface HackathonSettings {
   id: string;
   event_date: string;
@@ -367,4 +379,107 @@ export const hackathonService = {
     link.click();
     document.body.removeChild(link);
   },
+
+  // 9. Get Project Submission
+  async getProjectSubmission(team_id: string): Promise<ProjectSubmission | null> {
+    try {
+      const { data, error } = await supabase
+        .from('project_submissions' as any)
+        .select('*')
+        .eq('team_id', team_id)
+        .single();
+      
+      if (!error && data) {
+        return data as ProjectSubmission;
+      }
+    } catch {}
+    
+    // Local fallback
+    try {
+      const local = localStorage.getItem(`cva_submission_${team_id}`);
+      if (local) return JSON.parse(local);
+    } catch {}
+    
+    return null;
+  },
+
+  // 9b. Get All Project Submissions
+  async getAllProjectSubmissions(): Promise<ProjectSubmission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('project_submissions' as any)
+        .select('*')
+        .order('submitted_at', { ascending: false });
+      
+      if (!error && data) {
+        return data as ProjectSubmission[];
+      }
+    } catch {}
+    return [];
+  },
+
+  // 10. Submit Project
+  async submitProject(payload: ProjectSubmission): Promise<ProjectSubmission> {
+    const newSubmission = {
+      ...payload,
+      status: 'SUBMITTED',
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Save to local cache
+    try {
+      localStorage.setItem(`cva_submission_${payload.team_id}`, JSON.stringify(newSubmission));
+    } catch {}
+
+    try {
+      const { data, error } = await supabase
+        .from('project_submissions' as any)
+        .insert([newSubmission])
+        .select()
+        .single();
+      
+      if (data) {
+        return data as ProjectSubmission;
+      }
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase project submission insert error:', err);
+    }
+
+    return newSubmission;
+  },
+
+  // 11. Update Project Submission
+  async updateProjectSubmission(team_id: string, payload: Partial<ProjectSubmission>): Promise<ProjectSubmission | null> {
+    const updated = {
+      ...payload,
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const current = localStorage.getItem(`cva_submission_${team_id}`);
+      if (current) {
+        localStorage.setItem(`cva_submission_${team_id}`, JSON.stringify({ ...JSON.parse(current), ...updated }));
+      }
+    } catch {}
+
+    try {
+      const { data, error } = await supabase
+        .from('project_submissions' as any)
+        .update(updated)
+        .eq('team_id', team_id)
+        .select()
+        .single();
+      
+      if (data) {
+        return data as ProjectSubmission;
+      }
+    } catch (err) {
+      console.warn('Supabase project submission update error:', err);
+    }
+
+    const current = await this.getProjectSubmission(team_id);
+    return current ? { ...current, ...updated } : null;
+  }
 };
