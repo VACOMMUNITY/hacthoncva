@@ -21,7 +21,7 @@ export interface HackathonRegistration {
   team_members: TeamMember[];
   github_url?: string;
   linkedin_url?: string;
-  registration_phase: 'Early Bird' | 'Regular' | 'Last Minute';
+  registration_phase: 'Early Bird' | 'Regular';
   amount: number;
   payment_status: 'pending' | 'approved' | 'rejected';
   payment_screenshot_url?: string;
@@ -55,7 +55,6 @@ export interface HackathonSettings {
   early_bird_remaining: number;
   early_bird_price: number;
   regular_price: number;
-  last_minute_price: number;
   prize_winner: number;
   prize_runner_up: number;
   prize_second_runner_up: number;
@@ -74,9 +73,8 @@ const DEFAULT_SETTINGS: HackathonSettings = {
   team_size: '2–4 Members',
   early_bird_total: 50,
   early_bird_remaining: 31,
-  early_bird_price: 149,
-  regular_price: 249,
-  last_minute_price: 299,
+  early_bird_price: 299,
+  regular_price: 399,
   prize_winner: 10000,
   prize_runner_up: 5000,
   prize_second_runner_up: 3000,

@@ -67,7 +67,7 @@ export const Hackathon2026: React.FC = () => {
   // Modals
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<
-    'Early Bird' | 'Regular' | 'Last Minute'
+    'Early Bird' | 'Regular'
   >('Early Bird');
   const [tierPrice, setTierPrice] = useState(149);
 
@@ -114,7 +114,7 @@ export const Hackathon2026: React.FC = () => {
   }, [settings?.countdown_target]);
 
   const handleOpenRegistration = (
-    tier: 'Early Bird' | 'Regular' | 'Last Minute',
+    tier: 'Early Bird' | 'Regular',
     price: number
   ) => {
     setSelectedTier(tier);
@@ -137,7 +137,7 @@ export const Hackathon2026: React.FC = () => {
       `🚀 Join the COMMUNITY.VA AI Innovation Hackathon 2026!\n` +
       `📅 Date: 9 October 2026 (24 Hours Online)\n` +
       `🏆 Prizes: ₹10,000 Winner + ₹5,000 Runner-Up + ₹3,000 2nd Runner-Up!\n` +
-      `⚡ Early Bird: ₹149 (Only ${settings?.early_bird_remaining ?? 31} spots left!)\n` +
+      `⚡ Early Bird: ₹299 (Only ${settings?.early_bird_remaining ?? 31} spots left!)\n` +
       `👉 Register now: ${window.location.href}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -240,7 +240,7 @@ export const Hackathon2026: React.FC = () => {
             </Button>
 
             <Button
-              onClick={() => handleOpenRegistration('Early Bird', 149)}
+              onClick={() => handleOpenRegistration('Early Bird', 299)}
               size="sm"
               className="cyber-button-glow text-slate-950 font-bold px-5 text-xs sm:text-sm"
             >
@@ -377,7 +377,7 @@ export const Hackathon2026: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button
                 size="lg"
-                onClick={() => handleOpenRegistration('Early Bird', 149)}
+                onClick={() => handleOpenRegistration('Early Bird', 299)}
                 className="cyber-button-glow text-slate-950 font-black text-base sm:text-lg px-8 sm:px-12 py-6 rounded-xl shadow-neon-lg flex items-center gap-3"
               >
                 <Flame className="h-5 w-5 text-slate-950" />
@@ -474,7 +474,7 @@ export const Hackathon2026: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
             {/* 1. Early Bird (Highlighted) */}
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -492,7 +492,7 @@ export const Hackathon2026: React.FC = () => {
 
                 <div className="space-y-1">
                   <div className="text-4xl sm:text-5xl font-black text-cyan-400 font-mono">
-                    ₹{settings?.early_bird_price ?? 149}
+                    ₹{settings?.early_bird_price ?? 299}
                     <span className="text-xs text-slate-400 font-normal"> / Team</span>
                   </div>
                   <p className="text-xs text-slate-400">Complete team access (2-4 members)</p>
@@ -541,7 +541,7 @@ export const Hackathon2026: React.FC = () => {
               <div className="pt-6">
                 <Button
                   onClick={() =>
-                    handleOpenRegistration('Early Bird', settings?.early_bird_price ?? 149)
+                    handleOpenRegistration('Early Bird', settings?.early_bird_price ?? 299)
                   }
                   className="w-full cyber-button-glow text-slate-950 font-black py-6 rounded-xl text-sm"
                 >
@@ -563,7 +563,7 @@ export const Hackathon2026: React.FC = () => {
 
                 <div className="space-y-1">
                   <div className="text-4xl sm:text-5xl font-black text-white font-mono">
-                    ₹{settings?.regular_price ?? 249}
+                    ₹{settings?.regular_price ?? 399}
                     <span className="text-xs text-slate-400 font-normal"> / Team</span>
                   </div>
                   <p className="text-xs text-slate-400">Standard team entry</p>
@@ -599,7 +599,7 @@ export const Hackathon2026: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={() =>
-                    handleOpenRegistration('Regular', settings?.regular_price ?? 249)
+                    handleOpenRegistration('Regular', settings?.regular_price ?? 399)
                   }
                   className="w-full border-slate-700 hover:border-cyan-400 text-white font-bold py-6 rounded-xl text-sm"
                 >
@@ -608,61 +608,6 @@ export const Hackathon2026: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* 3. Last Minute */}
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="p-6 sm:p-8 rounded-3xl cyber-card-glass border border-slate-700 flex flex-col justify-between"
-            >
-              <div className="space-y-6">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-black text-white">Last Minute</h3>
-                  <p className="text-xs text-slate-400">Final Registration Phase</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-4xl sm:text-5xl font-black text-white font-mono">
-                    ₹{settings?.last_minute_price ?? 299}
-                    <span className="text-xs text-slate-400 font-normal"> / Team</span>
-                  </div>
-                  <p className="text-xs text-slate-400">Final closing batch</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <span className="text-xs text-slate-400">Final 48 hours before kickoff</span>
-                </div>
-
-                <ul className="space-y-2.5 text-xs text-slate-300">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-slate-500" />
-                    Full 24-Hour Hackathon Access
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-slate-500" />
-                    Verified QR Ticket Pass
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-slate-500" />
-                    Mentorship & Expert Check-ins
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-slate-500" />
-                    Official Community.VA Certificates
-                  </li>
-                </ul>
-              </div>
-
-              <div className="pt-6">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    handleOpenRegistration('Last Minute', settings?.last_minute_price ?? 299)
-                  }
-                  className="w-full border-slate-700 hover:border-cyan-400 text-white font-bold py-6 rounded-xl text-sm"
-                >
-                  Register Last Minute
-                </Button>
-              </div>
-            </motion.div>
           </div>
         </div>
       </section>
@@ -755,7 +700,7 @@ export const Hackathon2026: React.FC = () => {
 
                 <div className="pt-2">
                   <button
-                    onClick={() => handleOpenRegistration('Early Bird', 149)}
+                    onClick={() => handleOpenRegistration('Early Bird', 299)}
                     className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1.5 transition-colors"
                   >
                     Build for this track <ArrowRight className="h-3.5 w-3.5" />

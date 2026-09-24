@@ -67,9 +67,8 @@ export const AdminHackathon: React.FC = () => {
   const [eventDate, setEventDate] = useState('');
   const [countdownTarget, setCountdownTarget] = useState('');
   const [earlyBirdRemaining, setEarlyBirdRemaining] = useState(31);
-  const [earlyBirdPrice, setEarlyBirdPrice] = useState(149);
-  const [regularPrice, setRegularPrice] = useState(249);
-  const [lastMinutePrice, setLastMinutePrice] = useState(299);
+  const [earlyBirdPrice, setEarlyBirdPrice] = useState(299);
+  const [regularPrice, setRegularPrice] = useState(399);
   const [prizeWinner, setPrizeWinner] = useState(10000);
   const [prizeRunnerUp, setPrizeRunnerUp] = useState(5000);
   const [prizeSecondRunnerUp, setPrizeSecondRunnerUp] = useState(3000);
@@ -92,7 +91,6 @@ export const AdminHackathon: React.FC = () => {
       setEarlyBirdRemaining(cfg.early_bird_remaining);
       setEarlyBirdPrice(cfg.early_bird_price);
       setRegularPrice(cfg.regular_price);
-      setLastMinutePrice(cfg.last_minute_price);
       setPrizeWinner(cfg.prize_winner);
       setPrizeRunnerUp(cfg.prize_runner_up);
       setPrizeSecondRunnerUp(cfg.prize_second_runner_up);
@@ -176,7 +174,6 @@ export const AdminHackathon: React.FC = () => {
         early_bird_remaining: Number(earlyBirdRemaining),
         early_bird_price: Number(earlyBirdPrice),
         regular_price: Number(regularPrice),
-        last_minute_price: Number(lastMinutePrice),
         prize_winner: Number(prizeWinner),
         prize_runner_up: Number(prizeRunnerUp),
         prize_second_runner_up: Number(prizeSecondRunnerUp),
@@ -588,14 +585,6 @@ export const AdminHackathon: React.FC = () => {
                       type="number"
                       value={regularPrice}
                       onChange={(e) => setRegularPrice(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Last Minute Price (₹)</Label>
-                    <Input
-                      type="number"
-                      value={lastMinutePrice}
-                      onChange={(e) => setLastMinutePrice(Number(e.target.value))}
                     />
                   </div>
                 </div>
