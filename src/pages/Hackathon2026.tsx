@@ -69,7 +69,7 @@ export const Hackathon2026: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState<
     'Early Bird' | 'Regular'
   >('Early Bird');
-  const [tierPrice, setTierPrice] = useState(149);
+  const [tierPrice, setTierPrice] = useState(299);
 
   // Ticket Lookup State
   const [lookupQuery, setLookupQuery] = useState('');
@@ -381,7 +381,7 @@ export const Hackathon2026: React.FC = () => {
                 className="cyber-button-glow text-slate-950 font-black text-base sm:text-lg px-8 sm:px-12 py-6 rounded-xl shadow-neon-lg flex items-center gap-3"
               >
                 <Flame className="h-5 w-5 text-slate-950" />
-                REGISTER NOW (₹149)
+                REGISTER NOW (₹299)
                 <ArrowRight className="h-5 w-5 text-slate-950" />
               </Button>
 

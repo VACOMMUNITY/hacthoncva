@@ -42,7 +42,7 @@ import TicketCanvas from './TicketCanvas';
 interface RegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedTier: 'Early Bird' | 'Regular' | 'Last Minute';
+  selectedTier: 'Early Bird' | 'Regular';
   tierPrice: number;
   earlyBirdRemaining?: number;
   onSuccessRegistration?: (reg: HackathonRegistration) => void;

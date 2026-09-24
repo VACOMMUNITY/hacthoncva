@@ -101,7 +101,7 @@ const DEFAULT_SETTINGS: HackathonSettings = {
     },
     {
       question: 'What is the registration fee structure?',
-      answer: 'Registration is in three tiers: Early Bird at ₹149 (first 50 teams only), Regular at ₹249, and Last Minute at ₹299 per team.',
+      answer: 'Registration is in two tiers: Early Bird at ₹299 (first 50 teams only), and Regular at ₹399 per team.',
     },
     {
       question: 'Will all participants receive certificates?',
