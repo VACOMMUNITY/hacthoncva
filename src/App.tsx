@@ -13,6 +13,9 @@ import Pipeline from "@/pages/Pipeline";
 import Events from "@/pages/Events";
 import FollowUps from "@/pages/FollowUps";
 import Settings from "@/pages/Settings";
+import Hackathon2026 from "@/pages/Hackathon2026";
+import AdminHackathon from "@/pages/AdminHackathon";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,10 +28,19 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route
+              path="/hackathon-2026"
+              element={
+                <ErrorBoundary fallbackTitle="Hackathon 2026">
+                  <Hackathon2026 />
+                </ErrorBoundary>
+              }
+            />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin/hackathon" element={<AdminHackathon />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/pipeline" element={<Pipeline />} />

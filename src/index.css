@@ -207,4 +207,34 @@
     from { opacity: 0; transform: translateX(10px); }
     to { opacity: 1; transform: translateX(0); }
   }
+
+  /* Cyber & Hackathon 2026 Utilities */
+  .cyber-glow-text {
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.7), 0 0 40px rgba(0, 240, 255, 0.3);
+  }
+
+  .cyber-card-glass {
+    background: rgba(8, 14, 30, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 15px 0 rgba(0, 240, 255, 0.1);
+  }
+
+  .cyber-card-glass:hover {
+    border-color: rgba(0, 240, 255, 0.5);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), 0 0 25px 0 rgba(0, 240, 255, 0.25);
+  }
+
+  .cyber-button-glow {
+    position: relative;
+    background: linear-gradient(135deg, #00f0ff 0%, #0066ff 100%);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .cyber-button-glow:hover {
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
 }

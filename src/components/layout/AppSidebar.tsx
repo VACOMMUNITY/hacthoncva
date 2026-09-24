@@ -8,6 +8,7 @@ import {
   LogOut,
   Bell,
   ChevronLeft,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { icon: Trophy, label: 'Hackathon 2026', href: '/admin/hackathon' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
