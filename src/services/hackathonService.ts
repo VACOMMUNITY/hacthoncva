@@ -78,7 +78,7 @@ const DEFAULT_SETTINGS: HackathonSettings = {
   prize_winner: 10000,
   prize_runner_up: 5000,
   prize_second_runner_up: 3000,
-  upi_id: '7416201359@ybl',
+  upi_id: '9849046019@ybl',
   upi_name: 'Community.VA',
   sponsors: [
     { name: 'Title Sponsor', tier: 'Title', website: 'https://community.va' },
@@ -109,7 +109,7 @@ const DEFAULT_SETTINGS: HackathonSettings = {
     },
     {
       question: 'How does the payment and verification process work?',
-      answer: 'Scan our official Community.VA UPI QR code or pay to 7416201359@ybl. Upload the transaction screenshot in the registration form. Our team verifies payments promptly and your QR Event Pass will be issued immediately!',
+      answer: 'Scan our official Community.VA UPI QR code or pay to 9849046019@ybl. Upload the transaction screenshot in the registration form. Our team verifies payments promptly and your QR Event Pass will be issued immediately!',
     },
   ],
 };

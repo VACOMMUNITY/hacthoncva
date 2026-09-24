@@ -89,7 +89,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   const [completedRegistration, setCompletedRegistration] =
     useState<HackathonRegistration | null>(null);
 
-  const upiId = '7416201359@ybl';
+  const upiId = '9849046019@ybl';
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText(upiId);
@@ -591,7 +591,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="p-3 bg-white rounded-2xl shadow-neon-md border-2 border-cyan-400/50">
                   <img
-                    src="/community-va-upi-qr.png"
+                    src="/community-va-upi-qr.jpg"
                     alt="Community.VA UPI QR"
                     className="w-44 h-44 object-contain rounded-lg"
                   />
