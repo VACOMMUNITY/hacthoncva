@@ -20,6 +20,7 @@ import {
 import {
   Copy,
   Check,
+  CheckCircle2,
   Upload,
   UserPlus,
   Trash2,
@@ -175,11 +176,13 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   };
 
   const validateStep2 = () => {
-    const emptyMember = members.some((m) => !m.name.trim() || !m.email.trim());
-    if (emptyMember) {
+    const invalidMember = members.some(
+      (m) => (m.name.trim() && !m.email.trim()) || (!m.name.trim() && m.email.trim())
+    );
+    if (invalidMember) {
       toast({
         title: 'Teammate Information Required',
-        description: 'Please provide name and email for each teammate.',
+        description: 'Please provide both name and email for each teammate, or clear the unused fields.',
         variant: 'destructive',
       });
       return false;
@@ -188,14 +191,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   };
 
   const handleSubmitRegistration = async () => {
-    if (!proofFile && !transactionId.trim()) {
-      toast({
-        title: 'Payment Verification Required',
-        description: 'Please upload your UPI payment screenshot or enter the transaction ID.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    const txnId = transactionId.trim() || (proofFile ? undefined : 'PENDING-VERIFICATION');
 
     setIsSubmitting(true);
     try {
@@ -207,6 +203,8 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
         );
       }
 
+      const validMembers = members.filter((m) => m.name.trim() && m.email.trim());
+
       const newReg = await hackathonService.registerTeam({
         team_name: teamName,
         leader_name: leaderName,
@@ -216,13 +214,13 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
         year,
         branch,
         track,
-        team_members: members,
+        team_members: validMembers,
         github_url: githubUrl || undefined,
         linkedin_url: linkedinUrl || undefined,
         registration_phase: selectedTier,
         amount: tierPrice,
         payment_screenshot_url: screenshotUrl,
-        transaction_id: transactionId || undefined,
+        transaction_id: txnId,
       });
 
       setCompletedRegistration(newReg);
@@ -233,9 +231,10 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
         description: `Team ID: ${newReg.team_id}. Your payment is pending quick verification.`,
       });
     } catch (err: any) {
+      console.error('Registration error:', err);
       toast({
-        title: 'Registration Failed',
-        description: err.message || 'Something went wrong while submitting. Please try again.',
+        title: 'Registration Notice',
+        description: err?.message || 'Something went wrong while submitting. Please try again.',
         variant: 'destructive',
       });
     } finally {

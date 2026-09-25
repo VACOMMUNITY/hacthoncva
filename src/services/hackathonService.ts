@@ -138,6 +138,25 @@ const saveLocalRegistrations = (regs: HackathonRegistration[]) => {
 export const hackathonService = {
   // 1. Get Settings
   async getSettings(): Promise<HackathonSettings> {
+    const sanitizeSettings = (cfg: any): HackathonSettings => {
+      const merged = { ...DEFAULT_SETTINGS, ...cfg };
+      if (merged.early_bird_price === 149 || !merged.early_bird_price) {
+        merged.early_bird_price = 299;
+      }
+      if (merged.regular_price === 249 || !merged.regular_price) {
+        merged.regular_price = 399;
+      }
+      if (Array.isArray(merged.faqs)) {
+        merged.faqs = merged.faqs.map((f: any) => ({
+          ...f,
+          answer: typeof f.answer === 'string'
+            ? f.answer.replace(/₹149/g, '₹299').replace(/₹249/g, '₹399').replace(/149/g, '299').replace(/249/g, '399')
+            : f.answer,
+        }));
+      }
+      return merged as HackathonSettings;
+    };
+
     try {
       const { data, error } = await supabase
         .from('hackathon_settings' as any)
@@ -146,7 +165,7 @@ export const hackathonService = {
         .single();
 
       if (!error && data) {
-        return { ...DEFAULT_SETTINGS, ...data } as HackathonSettings;
+        return sanitizeSettings(data);
       }
     } catch {
       // Supabase table not created yet; fallback gracefully
@@ -155,7 +174,10 @@ export const hackathonService = {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
       if (saved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        const sanitized = sanitizeSettings(parsed);
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(sanitized));
+        return sanitized;
       }
     } catch {}
 
@@ -188,9 +210,24 @@ export const hackathonService = {
   }): Promise<HackathonRegistration> {
     const randomCode = Math.floor(1000 + Math.random() * 9000);
     const team_id = `CVA-HACK-${randomCode}`;
+
+    // RFC4122 v4 UUID generator that works in all browsers and insecure contexts
+    const generateUUID = (): string => {
+      try {
+        if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.randomUUID === 'function') {
+          return window.crypto.randomUUID();
+        }
+      } catch {}
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    };
+
     const newReg: HackathonRegistration = {
       ...payload,
-      id: crypto.randomUUID ? crypto.randomUUID() : `reg-${Date.now()}-${randomCode}`,
+      id: generateUUID(),
       team_id,
       payment_status: payload.payment_status || 'pending',
       qr_ticket_code: `CVA2026-${team_id}-${Date.now()}`,
@@ -198,17 +235,25 @@ export const hackathonService = {
     };
 
     // Save to local storage cache
-    const currentList = getLocalRegistrations();
-    saveLocalRegistrations([newReg, ...currentList]);
+    try {
+      const currentList = getLocalRegistrations();
+      saveLocalRegistrations([newReg, ...currentList]);
+    } catch (e) {
+      console.warn('Local cache save error:', e);
+    }
 
     // Update remaining early bird spots if applicable
-    if (newReg.registration_phase === 'Early Bird') {
-      const settings = await this.getSettings();
-      if (settings.early_bird_remaining > 0) {
-        await this.updateSettings({
-          early_bird_remaining: Math.max(0, settings.early_bird_remaining - 1),
-        });
+    try {
+      if (newReg.registration_phase === 'Early Bird') {
+        const settings = await this.getSettings();
+        if (settings.early_bird_remaining > 0) {
+          await this.updateSettings({
+            early_bird_remaining: Math.max(0, settings.early_bird_remaining - 1),
+          });
+        }
       }
+    } catch (e) {
+      console.warn('Early bird count update error:', e);
     }
 
     // Try saving to Supabase
@@ -246,14 +291,53 @@ export const hackathonService = {
         }
       }
     } catch (err) {
-      console.warn('Supabase storage upload failed, creating local data URL:', err);
+      console.warn('Supabase storage upload failed, creating compressed data URL:', err);
     }
 
-    // Fallback to Data URL
+    // Fallback: Compress image to compact Data URL (~30-60KB) to prevent exceeding browser localStorage quota
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const rawUrl = (e.target?.result as string) || '';
+          if (!file.type.startsWith('image/')) {
+            return resolve(rawUrl);
+          }
+
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              const maxDim = 800;
+              if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                  height = Math.round((height * maxDim) / width);
+                  width = maxDim;
+                } else {
+                  width = Math.round((width * maxDim) / height);
+                  height = maxDim;
+                }
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                return resolve(canvas.toDataURL('image/jpeg', 0.7));
+              }
+            } catch {}
+            resolve(rawUrl);
+          };
+          img.onerror = () => resolve(rawUrl);
+          img.src = rawUrl;
+        };
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      } catch {
+        resolve('');
+      }
     });
   },
 
@@ -449,17 +533,16 @@ export const hackathonService = {
   },
 
   // 11. Update Project Submission
-  async updateProjectSubmission(team_id: string, payload: Partial<ProjectSubmission>): Promise<ProjectSubmission | null> {
-    const updated = {
+  async updateProjectSubmission(team_id: string, payload: Partial<ProjectSubmission>): Promise<ProjectSubmission> {
+    const existing = await this.getProjectSubmission(team_id);
+    const updated: ProjectSubmission = {
+      ...(existing || { team_id, github_link: '', linkedin_link: '', vercel_link: '', status: 'SUBMITTED' }),
       ...payload,
       updated_at: new Date().toISOString()
     };
 
     try {
-      const current = localStorage.getItem(`cva_submission_${team_id}`);
-      if (current) {
-        localStorage.setItem(`cva_submission_${team_id}`, JSON.stringify({ ...JSON.parse(current), ...updated }));
-      }
+      localStorage.setItem(`cva_submission_${team_id}`, JSON.stringify(updated));
     } catch {}
 
     try {
@@ -477,7 +560,6 @@ export const hackathonService = {
       console.warn('Supabase project submission update error:', err);
     }
 
-    const current = await this.getProjectSubmission(team_id);
-    return current ? { ...current, ...updated } : null;
+    return updated;
   }
 };
