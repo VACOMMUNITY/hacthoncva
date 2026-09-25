@@ -77,6 +77,7 @@ export const AdminHackathon: React.FC = () => {
   const [prizeWinner, setPrizeWinner] = useState(10000);
   const [prizeRunnerUp, setPrizeRunnerUp] = useState(5000);
   const [prizeSecondRunnerUp, setPrizeSecondRunnerUp] = useState(3000);
+  const [faqs, setFaqs] = useState<Array<{ question: string; answer: string }>>([]);
   // Private Admin Authentication (Credentials: admin / admin123)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
