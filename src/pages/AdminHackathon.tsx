@@ -36,6 +36,8 @@ import {
   Trash2,
   Eye,
   RefreshCw,
+  ArrowLeft,
+  ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -213,29 +215,43 @@ export const AdminHackathon: React.FC = () => {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader
-          title="Hackathon 2026 Management"
-          description="Manage AI Innovation Hackathon registrations, approve payments, export CSV, and edit live content."
-        />
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadData}
-            className="flex items-center gap-2"
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6 max-w-7xl mx-auto">
+        {/* Top Navbar / Back Link */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <a
+            href="/hackathon-2026"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
           >
-            <RefreshCw className="h-4 w-4" /> Refresh
-          </Button>
-          <a href="/hackathon-2026" target="_blank" rel="noreferrer">
-            <Button size="sm" className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4" /> View Landing Page
-            </Button>
+            <ArrowLeft className="h-4 w-4" /> Back to Hackathon Portal
           </a>
+          <div className="flex items-center gap-2 text-xs text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30">
+            <ShieldCheck className="h-3.5 w-3.5" /> Admin Control Center
+          </div>
         </div>
-      </div>
+
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <PageHeader
+            title="Hackathon 2026 Management"
+            description="Manage AI Innovation Hackathon registrations, approve payments, export CSV, and edit live content."
+          />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              className="flex items-center gap-2 border-slate-700 hover:bg-slate-800 text-slate-200"
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+            <a href="/hackathon-2026" target="_blank" rel="noreferrer">
+              <Button size="sm" className="cyber-button-glow text-slate-950 font-bold flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" /> Open Landing Page
+              </Button>
+            </a>
+          </div>
+        </div>
 
       {/* DASHBOARD STATS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -734,6 +750,7 @@ export const AdminHackathon: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

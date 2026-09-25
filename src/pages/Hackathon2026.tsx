@@ -226,7 +226,18 @@ export const Hackathon2026: React.FC = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/admin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs flex items-center gap-1.5 px-3"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
+                Admin
+              </Button>
+            </Link>
+
             <Button
               variant="outline"
               size="sm"
@@ -242,7 +253,7 @@ export const Hackathon2026: React.FC = () => {
             <Button
               onClick={() => handleOpenRegistration('Early Bird', 299)}
               size="sm"
-              className="cyber-button-glow text-slate-950 font-bold px-5 text-xs sm:text-sm"
+              className="cyber-button-glow text-slate-950 font-bold px-4 sm:px-5 text-xs sm:text-sm"
             >
               Register Now
             </Button>
@@ -1193,6 +1204,11 @@ export const Hackathon2026: React.FC = () => {
             <p>© 2026 Community.VA. All rights reserved.</p>
             <p className="text-[11px]">
               AI Innovation Hackathon 2026 • 9 October 2026
+            </p>
+            <p className="text-xs pt-1">
+              <Link to="/admin" className="text-purple-400 hover:text-purple-300 font-medium inline-flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" /> Admin Dashboard (Approve / Reject Teams)
+              </Link>
             </p>
           </div>
         </div>

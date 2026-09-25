@@ -36,11 +36,26 @@ const App = () => (
                 </ErrorBoundary>
               }
             />
+            <Route
+              path="/admin"
+              element={
+                <ErrorBoundary fallbackTitle="Admin Hackathon Dashboard">
+                  <AdminHackathon />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/admin/hackathon"
+              element={
+                <ErrorBoundary fallbackTitle="Admin Hackathon Dashboard">
+                  <AdminHackathon />
+                </ErrorBoundary>
+              }
+            />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/hackathon-2026" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin/hackathon" element={<AdminHackathon />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/pipeline" element={<Pipeline />} />
