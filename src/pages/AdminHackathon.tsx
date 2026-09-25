@@ -38,6 +38,9 @@ import {
   RefreshCw,
   ArrowLeft,
   ShieldCheck,
+  Lock,
+  KeyRound,
+  LogOut,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -74,7 +77,17 @@ export const AdminHackathon: React.FC = () => {
   const [prizeWinner, setPrizeWinner] = useState(10000);
   const [prizeRunnerUp, setPrizeRunnerUp] = useState(5000);
   const [prizeSecondRunnerUp, setPrizeSecondRunnerUp] = useState(3000);
-  const [faqs, setFaqs] = useState<Array<{ question: string; answer: string }>>([]);
+  // Private Admin Authentication (Credentials: admin / admin123)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('cva_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authError, setAuthError] = useState('');
 
   const loadData = async () => {
     setIsLoading(true);
@@ -103,8 +116,45 @@ export const AdminHackathon: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isAdminAuthenticated) {
+      loadData();
+    }
+  }, [isAdminAuthenticated]);
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminUsername.trim() === 'admin' && adminPassword === 'admin123') {
+      try {
+        sessionStorage.setItem('cva_admin_auth', 'true');
+      } catch {}
+      setIsAdminAuthenticated(true);
+      setAuthError('');
+      toast({
+        title: 'Admin Access Granted 🎉',
+        description: 'Welcome to the Hackathon Control Center.',
+      });
+    } else {
+      setAuthError('Invalid credentials. Please verify your admin username and password.');
+      toast({
+        title: 'Access Denied',
+        description: 'Incorrect admin username or password.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAdminLogout = () => {
+    try {
+      sessionStorage.removeItem('cva_admin_auth');
+    } catch {}
+    setIsAdminAuthenticated(false);
+    setAdminUsername('');
+    setAdminPassword('');
+    toast({
+      title: 'Logged Out',
+      description: 'Admin session closed.',
+    });
+  };
 
   // Stats Calculations
   const totalTeams = registrations.length;
@@ -214,6 +264,92 @@ export const AdminHackathon: React.FC = () => {
     setFaqs(updated);
   };
 
+  // Private Admin Login Barrier
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-cyan-600/15 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-md relative z-10 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+              <ShieldCheck className="h-8 w-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Admin Control Center
+            </h1>
+            <p className="text-xs text-slate-400">
+              Authorized organizers only. Enter credentials to manage registrations and approve payments.
+            </p>
+          </div>
+
+          <Card className="bg-slate-900/90 border border-purple-500/30 shadow-2xl backdrop-blur-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <Lock className="h-4 w-4 text-purple-400" /> Admin Authentication
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Please enter your administrator username and password.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-300">Username</Label>
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    value={adminUsername}
+                    onChange={(e) => setAdminUsername(e.target.value)}
+                    required
+                    className="bg-slate-950 border-slate-700 text-white focus:border-purple-400"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-300">Password</Label>
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    className="bg-slate-950 border-slate-700 text-white focus:border-purple-400"
+                  />
+                </div>
+
+                {authError && (
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded-lg text-center">
+                    {authError}
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-5 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2"
+                >
+                  <KeyRound className="h-4 w-4" /> Unlock Admin Dashboard
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <div className="text-center">
+            <a
+              href="/hackathon-2026"
+              className="text-xs text-slate-400 hover:text-cyan-400 inline-flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Return to Hackathon Site
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8">
       <div className="space-y-6 max-w-7xl mx-auto">
@@ -225,8 +361,18 @@ export const AdminHackathon: React.FC = () => {
           >
             <ArrowLeft className="h-4 w-4" /> Back to Hackathon Portal
           </a>
-          <div className="flex items-center gap-2 text-xs text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30">
-            <ShieldCheck className="h-3.5 w-3.5" /> Admin Control Center
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30">
+              <ShieldCheck className="h-3.5 w-3.5" /> Admin: admin
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAdminLogout}
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 text-xs flex items-center gap-1.5 h-7 px-2.5"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Logout
+            </Button>
           </div>
         </div>
 
