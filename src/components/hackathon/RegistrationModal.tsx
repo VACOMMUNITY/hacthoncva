@@ -89,16 +89,32 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   const [completedRegistration, setCompletedRegistration] =
     useState<HackathonRegistration | null>(null);
 
-  const upiId = '7416201359@ybl';
+  // Dual UPI IDs
+  const primaryUpiId = 'padimarriabhiram@oksbi';
+  const secondaryUpiId = '9849046019@ybl';
+  const upiName = 'Abhi Ram';
 
-  const handleCopyUPI = () => {
-    navigator.clipboard.writeText(upiId);
-    setCopiedUpi(true);
+  const [copiedUpi1, setCopiedUpi1] = useState(false);
+  const [copiedUpi2, setCopiedUpi2] = useState(false);
+
+  const handleCopyUpi1 = () => {
+    navigator.clipboard.writeText(primaryUpiId);
+    setCopiedUpi1(true);
     toast({
-      title: 'UPI ID Copied',
-      description: `${upiId} copied to clipboard`,
+      title: 'Primary UPI ID Copied',
+      description: `${primaryUpiId} copied to clipboard`,
     });
-    setTimeout(() => setCopiedUpi(false), 2000);
+    setTimeout(() => setCopiedUpi1(false), 2000);
+  };
+
+  const handleCopyUpi2 = () => {
+    navigator.clipboard.writeText(secondaryUpiId);
+    setCopiedUpi2(true);
+    toast({
+      title: 'Alternative UPI ID Copied',
+      description: `${secondaryUpiId} copied to clipboard`,
+    });
+    setTimeout(() => setCopiedUpi2(false), 2000);
   };
 
   const handleAddMember = () => {
@@ -652,20 +668,26 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-slate-900/60 border border-cyan-500/20 rounded-2xl p-5">
               {/* Branded UPI QR Display */}
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className="p-3 bg-white rounded-2xl shadow-neon-md border-2 border-cyan-400/50">
+                <div className="p-2.5 bg-white rounded-2xl shadow-neon-md border-2 border-cyan-400/50">
                   <img
                     src="/community-va-upi-qr.png"
-                    alt="Community.VA UPI QR"
-                    className="w-44 h-44 object-contain rounded-lg"
+                    alt="Abhi Ram UPI QR Code"
+                    className="w-48 max-w-[200px] h-auto object-contain rounded-lg"
                   />
                 </div>
-                <p className="text-xs text-cyan-300 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Official Community.VA QR
-                </p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-white flex items-center justify-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    Account: {upiName}
+                  </p>
+                  <p className="text-[11px] text-cyan-300 font-mono">
+                    Scan with any UPI app
+                  </p>
+                </div>
               </div>
 
-              {/* Payment Details & Copy */}
-              <div className="space-y-4">
+              {/* Payment Details & Dual UPI IDs */}
+              <div className="space-y-3.5">
                 <div>
                   <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                     Payable Amount
@@ -678,34 +700,67 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <span className="text-xs text-slate-400">Official UPI ID</span>
-                  <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg p-2.5">
-                    <span className="font-mono text-sm text-cyan-300 flex-1 truncate">
-                      {upiId}
+                {/* Primary UPI ID 1 (GPay / SBI - Abhi Ram) */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">UPI ID 1 (Google Pay / SBI):</span>
+                    <span className="text-cyan-400 font-mono text-[10px]">{upiName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg p-2">
+                    <span className="font-mono text-xs sm:text-sm text-cyan-300 flex-1 truncate font-semibold">
+                      {primaryUpiId}
                     </span>
                     <Button
                       type="button"
                       size="sm"
-                      onClick={handleCopyUPI}
-                      className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs h-8 px-3"
+                      onClick={handleCopyUpi1}
+                      className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs h-7 px-2.5"
                     >
-                      {copiedUpi ? (
+                      {copiedUpi1 ? (
                         <>
-                          <Check className="h-3.5 w-3.5 mr-1" /> Copied
+                          <Check className="h-3 w-3 mr-1" /> Copied
                         </>
                       ) : (
                         <>
-                          <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                          <Copy className="h-3 w-3 mr-1" /> Copy
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-xs text-slate-400">
-                  <p>• Accepted apps: PhonePe, Google Pay, Paytm, CRED, BHIM</p>
-                  <p>• Scan QR or pay directly to the UPI ID above</p>
+                {/* Secondary UPI ID 2 (PhonePe / YBL) */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">UPI ID 2 (PhonePe / YBL):</span>
+                    <span className="text-purple-400 font-mono text-[10px]">Instant Pay</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg p-2">
+                    <span className="font-mono text-xs sm:text-sm text-purple-300 flex-1 truncate font-semibold">
+                      {secondaryUpiId}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCopyUpi2}
+                      className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs h-7 px-2.5"
+                    >
+                      {copiedUpi2 ? (
+                        <>
+                          <Check className="h-3 w-3 mr-1" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 mr-1" /> Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-400 pt-1">
+                  <p>• Accepted apps: Google Pay, PhonePe, Paytm, CRED, BHIM</p>
+                  <p>• Scan QR on the left or pay directly to either UPI ID</p>
                 </div>
               </div>
             </div>
