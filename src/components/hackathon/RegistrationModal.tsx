@@ -134,36 +134,55 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
     setMembers(updated);
   };
 
+  // Security: Input Sanitization Helper
+  const sanitizeText = (str: string): string => {
+    return str
+      .replace(/[<>]/g, '') // Strip HTML tags to prevent XSS
+      .trim();
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Security: Validate file type (only standard image formats, reject executable/svg/html)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
+        toast({
+          title: 'Invalid File Format',
+          description: 'Security policy: Only JPG, PNG, or WEBP image proofs are accepted.',
+          variant: 'destructive',
+        });
+        e.target.value = '';
+        return;
+      }
+
+      // Security: Validate file size (Maximum 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast({
+          title: 'File Too Large',
+          description: 'Payment proof screenshot must be under 5 MB in size.',
+          variant: 'destructive',
+        });
+        e.target.value = '';
+        return;
+      }
+
       setProofFile(file);
       const url = URL.createObjectURL(file);
       setProofPreview(url);
     }
   };
 
-  // Google OAuth Login
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.href,
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast({
-        title: 'Google Login',
-        description: err.message || 'Unable to connect to Google OAuth',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const validateStep1 = () => {
-    if (!teamName.trim() || !leaderName.trim() || !email.trim() || !phone.trim() || !college.trim()) {
+    const sTeam = sanitizeText(teamName);
+    const sLeader = sanitizeText(leaderName);
+    const sEmail = email.trim();
+    const sPhone = phone.trim().replace(/\D/g, ''); // Extract numeric digits
+    const sCollege = sanitizeText(college);
+
+    if (!sTeam || !sLeader || !sEmail || !sPhone || !sCollege) {
       toast({
         title: 'Missing Required Fields',
         description: 'Please complete all team leader & college details.',
@@ -171,18 +190,75 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
       });
       return false;
     }
+
+    // Strict Email Format Validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(sEmail)) {
+      toast({
+        title: 'Invalid Email Address',
+        description: 'Please enter a valid email address (e.g. leader@college.edu).',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    // Strict Phone Number Validation (10 digits)
+    if (sPhone.length !== 10) {
+      toast({
+        title: 'Invalid Mobile Number',
+        description: 'Please enter a valid 10-digit mobile number.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    // Strict URL Validation for optional links
+    if (githubUrl.trim() && !githubUrl.trim().startsWith('https://')) {
+      toast({
+        title: 'Insecure URL',
+        description: 'GitHub profile URL must start with https:// for security.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    if (linkedinUrl.trim() && !linkedinUrl.trim().startsWith('https://')) {
+      toast({
+        title: 'Insecure URL',
+        description: 'LinkedIn profile URL must start with https:// for security.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
     return true;
   };
 
   const validateStep2 = () => {
-    const emptyMember = members.some((m) => !m.name.trim() || !m.email.trim());
-    if (emptyMember) {
-      toast({
-        title: 'Teammate Information Required',
-        description: 'Please provide name and email for each teammate.',
-        variant: 'destructive',
-      });
-      return false;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    for (let i = 0; i < members.length; i++) {
+      const m = members[i];
+      const sName = sanitizeText(m.name);
+      const sEmail = m.email.trim();
+
+      if (!sName || !sEmail) {
+        toast({
+          title: `Teammate #${i + 2} Incomplete`,
+          description: 'Please provide both full name and email for each teammate.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      if (!emailRegex.test(sEmail)) {
+        toast({
+          title: `Invalid Email for Teammate #${i + 2}`,
+          description: `"${sEmail}" is not a valid email address.`,
+          variant: 'destructive',
+        });
+        return false;
+      }
     }
     return true;
   };
@@ -208,21 +284,25 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
       }
 
       const newReg = await hackathonService.registerTeam({
-        team_name: teamName,
-        leader_name: leaderName,
-        phone,
-        email,
-        college,
+        team_name: sanitizeText(teamName),
+        leader_name: sanitizeText(leaderName),
+        phone: phone.trim().replace(/\D/g, ''),
+        email: email.trim().toLowerCase(),
+        college: sanitizeText(college),
         year,
-        branch,
+        branch: sanitizeText(branch),
         track,
-        team_members: members,
-        github_url: githubUrl || undefined,
-        linkedin_url: linkedinUrl || undefined,
+        team_members: members.map((m) => ({
+          name: sanitizeText(m.name),
+          email: m.email.trim().toLowerCase(),
+          role: sanitizeText(m.role || 'Developer'),
+        })),
+        github_url: githubUrl.trim() || undefined,
+        linkedin_url: linkedinUrl.trim() || undefined,
         registration_phase: selectedTier,
         amount: tierPrice,
         payment_screenshot_url: screenshotUrl,
-        transaction_id: transactionId || undefined,
+        transaction_id: transactionId.trim() ? sanitizeText(transactionId) : undefined,
       });
 
       setCompletedRegistration(newReg);
@@ -323,23 +403,6 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
             animate={{ opacity: 1, x: 0 }}
             className="space-y-4"
           >
-            {/* Quick Google Sign In */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-slate-200">Have a Google Account?</p>
-                <p className="text-xs text-slate-400">Sign in with Google or continue filling the form below.</p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGoogleSignIn}
-                className="border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-white"
-              >
-                Sign In with Google
-              </Button>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">Team Name *</Label>

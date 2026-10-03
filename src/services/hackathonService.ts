@@ -213,11 +213,15 @@ export const hackathonService = {
     return newReg;
   },
 
-  // 4. Upload Payment Screenshot
+  // 4. Upload Payment Screenshot with Sanitization & Whitelisting
   async uploadPaymentProof(file: File, teamIdentifier: string): Promise<string> {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${teamIdentifier}-${Date.now()}.${fileExt}`;
+      const rawExt = (file.name.split('.').pop() || '').toLowerCase();
+      // Whitelist only safe image extensions
+      const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt) ? rawExt : 'png';
+      // Path traversal protection: strip all non-alphanumeric chars
+      const safeIdentifier = teamIdentifier.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'team';
+      const fileName = `${safeIdentifier}-${Date.now()}.${safeExt}`;
       const filePath = `receipts/${fileName}`;
 
       const { data, error } = await supabase.storage
@@ -319,8 +323,18 @@ export const hackathonService = {
     return found || null;
   },
 
-  // 8. Export CSV
+  // 8. Export CSV with Formula Injection (CWE-1236) Protection
   exportCSV(registrations: HackathonRegistration[]) {
+    // Neutralize dangerous spreadsheet formulas (=, +, -, @)
+    const sanitizeCsv = (val: any): string => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      if (/^[=+\-@\t\r]/.test(str)) {
+        return `"'${str}"`;
+      }
+      return `"${str}"`;
+    };
+
     const headers = [
       'Team ID',
       'Team Name',
@@ -340,21 +354,21 @@ export const hackathonService = {
     ];
 
     const rows = registrations.map((r) => [
-      `"${r.team_id}"`,
-      `"${r.team_name.replace(/"/g, '""')}"`,
-      `"${r.leader_name.replace(/"/g, '""')}"`,
-      `"${r.email}"`,
-      `"${r.phone}"`,
-      `"${r.college.replace(/"/g, '""')}"`,
-      `"${r.year}"`,
-      `"${r.branch.replace(/"/g, '""')}"`,
-      `"${r.track}"`,
+      sanitizeCsv(r.team_id),
+      sanitizeCsv(r.team_name),
+      sanitizeCsv(r.leader_name),
+      sanitizeCsv(r.email),
+      sanitizeCsv(r.phone),
+      sanitizeCsv(r.college),
+      sanitizeCsv(r.year),
+      sanitizeCsv(r.branch),
+      sanitizeCsv(r.track),
       r.team_members?.length ? r.team_members.length + 1 : 1,
-      `"${r.team_members?.map((m) => `${m.name} (${m.email})`).join('; ') || 'Solo/None'}"`,
-      `"${r.registration_phase}"`,
+      sanitizeCsv(r.team_members?.map((m) => `${m.name} (${m.email})`).join('; ') || 'Solo/None'),
+      sanitizeCsv(r.registration_phase),
       r.amount,
-      `"${r.payment_status}"`,
-      `"${new Date(r.created_at).toLocaleString()}"`,
+      sanitizeCsv(r.payment_status),
+      sanitizeCsv(new Date(r.created_at).toLocaleString()),
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');

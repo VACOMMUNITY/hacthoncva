@@ -65,17 +65,17 @@ CREATE INDEX IF NOT EXISTS idx_hackathon_reg_status ON public.hackathon_registra
 ALTER TABLE public.hackathon_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hackathon_registrations ENABLE ROW LEVEL SECURITY;
 
--- Settings Policies: Anyone can read, only authenticated/admins can update
+-- Settings Policies: Anyone can read, only verified admins can modify
 CREATE POLICY "Public can read hackathon settings"
 ON public.hackathon_settings FOR SELECT
 TO anon, authenticated
 USING (true);
 
-CREATE POLICY "Admins can update hackathon settings"
+CREATE POLICY "Admins can manage hackathon settings"
 ON public.hackathon_settings FOR ALL
 TO authenticated
-USING (true)
-WITH CHECK (true);
+USING (public.has_role(auth.uid(), 'admin'))
+WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Registrations Policies:
 CREATE POLICY "Anyone can register for hackathon"
@@ -83,28 +83,45 @@ ON public.hackathon_registrations FOR INSERT
 TO anon, authenticated
 WITH CHECK (true);
 
-CREATE POLICY "Users can read own registration or all for authenticated"
+CREATE POLICY "Public and authenticated can read registrations"
 ON public.hackathon_registrations FOR SELECT
 TO anon, authenticated
 USING (true);
 
-CREATE POLICY "Authenticated can update registrations"
+CREATE POLICY "Admins can update hackathon registrations"
 ON public.hackathon_registrations FOR UPDATE
 TO authenticated
-USING (true)
-WITH CHECK (true);
+USING (public.has_role(auth.uid(), 'admin'))
+WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can delete hackathon registrations"
+ON public.hackathon_registrations FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'));
 
 -- Storage bucket setup
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('hackathon-receipts', 'hackathon-receipts', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'hackathon-receipts', 
+    'hackathon-receipts', 
+    true, 
+    5242880, -- 5 MB limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
 
-CREATE POLICY "Allow public upload to hackathon-receipts"
+CREATE POLICY "Allow authenticated and anon upload to hackathon-receipts"
 ON storage.objects FOR INSERT
 TO anon, authenticated
-WITH CHECK (bucket_id = 'hackathon-receipts');
+WITH CHECK (
+    bucket_id = 'hackathon-receipts' 
+    AND (LOWER(storage.extension(name)) = 'jpg' OR LOWER(storage.extension(name)) = 'jpeg' OR LOWER(storage.extension(name)) = 'png' OR LOWER(storage.extension(name)) = 'webp')
+);
 
 CREATE POLICY "Allow public read from hackathon-receipts"
 ON storage.objects FOR SELECT
 TO anon, authenticated
 USING (bucket_id = 'hackathon-receipts');
+

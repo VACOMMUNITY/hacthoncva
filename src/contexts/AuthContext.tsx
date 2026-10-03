@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(cached);
         setUser(parsed.user);
         setProfile(parsed.profile);
-        setRole(parsed.role || 'admin');
+        setRole(parsed.role || 'coordinator');
         setIsLoading(false);
       } catch {}
     }
@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        // If network / DNS failed, allow login as local admin session
+        // If network / DNS failed, allow login as local coordinator session (only admin if matching admin email)
         if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
           const fallbackUser = {
             id: `user-${Date.now()}`,
@@ -155,10 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updated_at: new Date().toISOString(),
           };
 
+          const assignedRole: AppRole = email === 'admin@community.va' ? 'admin' : 'coordinator';
           setUser(fallbackUser);
           setProfile(fallbackProfile);
-          setRole('admin');
-          localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: 'admin' }));
+          setRole(assignedRole);
+          localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: assignedRole }));
           return { error: null };
         }
         return { error: error as Error | null };
@@ -184,10 +185,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: new Date().toISOString(),
       };
 
+      const assignedRole: AppRole = email === 'admin@community.va' ? 'admin' : 'coordinator';
       setUser(fallbackUser);
       setProfile(fallbackProfile);
-      setRole('admin');
-      localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: 'admin' }));
+      setRole(assignedRole);
+      localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: assignedRole }));
       return { error: null };
     }
   };
@@ -227,17 +229,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updated_at: new Date().toISOString(),
           };
 
+          const assignedRole: AppRole = 'coordinator';
           setUser(fallbackUser);
           setProfile(fallbackProfile);
-          setRole('admin');
-          localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: 'admin' }));
+          setRole(assignedRole);
+          localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: assignedRole }));
           return { error: null };
         }
         return { error: error as Error | null };
       }
       return { error: null };
     } catch (err: any) {
-      // Create local fallback account
+      // Create local fallback account with coordinator role
       const fallbackUser = {
         id: `user-${Date.now()}`,
         email,
@@ -256,10 +259,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: new Date().toISOString(),
       };
 
+      const assignedRole: AppRole = 'coordinator';
       setUser(fallbackUser);
       setProfile(fallbackProfile);
-      setRole('admin');
-      localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: 'admin' }));
+      setRole(assignedRole);
+      localStorage.setItem('cva_demo_auth', JSON.stringify({ user: fallbackUser, profile: fallbackProfile, role: assignedRole }));
       return { error: null };
     }
   };

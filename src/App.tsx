@@ -15,6 +15,7 @@ import FollowUps from "@/pages/FollowUps";
 import Settings from "@/pages/Settings";
 import Hackathon2026 from "@/pages/Hackathon2026";
 import AdminHackathon from "@/pages/AdminHackathon";
+import AdminRoute from "@/components/layout/AdminRoute";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 
@@ -40,7 +41,14 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin/hackathon" element={<AdminHackathon />} />
+              <Route
+                path="/admin/hackathon"
+                element={
+                  <AdminRoute>
+                    <AdminHackathon />
+                  </AdminRoute>
+                }
+              />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/pipeline" element={<Pipeline />} />

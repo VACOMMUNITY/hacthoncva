@@ -231,10 +231,6 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Demo credentials: admin@community.va / admin123
-        </p>
       </div>
     </div>
   );
