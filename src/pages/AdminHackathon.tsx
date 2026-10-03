@@ -36,22 +36,31 @@ import {
   Trash2,
   Eye,
   RefreshCw,
+  UploadCloud,
+  Code2,
+  Globe,
+  Video,
+  Presentation,
+  Github,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   hackathonService,
   HackathonRegistration,
   HackathonSettings,
+  ProjectSubmission,
 } from '@/services/hackathonService';
 
 export const AdminHackathon: React.FC = () => {
   const { toast } = useToast();
   const [registrations, setRegistrations] = useState<HackathonRegistration[]>([]);
+  const [submissions, setSubmissions] = useState<ProjectSubmission[]>([]);
   const [settings, setSettings] = useState<HackathonSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
+  const [submissionSearch, setSubmissionSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   // Proof Modal
@@ -76,12 +85,14 @@ export const AdminHackathon: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [regs, cfg] = await Promise.all([
+      const [regs, cfg, subs] = await Promise.all([
         hackathonService.getRegistrations(),
         hackathonService.getSettings(),
+        hackathonService.getProjectSubmissions(),
       ]);
       setRegistrations(regs);
       setSettings(cfg);
+      setSubmissions(subs);
 
       setEventDate(cfg.event_date);
       setCountdownTarget(cfg.countdown_target);
@@ -237,7 +248,7 @@ export const AdminHackathon: React.FC = () => {
       </div>
 
       {/* DASHBOARD STATS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <StatCard
           title="Total Teams"
           value={totalTeams}
@@ -259,16 +270,22 @@ export const AdminHackathon: React.FC = () => {
           icon={<CheckCircle className="h-5 w-5 text-cyan-500" />}
         />
         <StatCard
+          title="Projects Submitted"
+          value={submissions.length}
+          icon={<UploadCloud className="h-5 w-5 text-purple-500" />}
+        />
+        <StatCard
           title="Early Bird Left"
           value={settings?.early_bird_remaining ?? 31}
           icon={<Flame className="h-5 w-5 text-red-500" />}
         />
       </div>
 
-      {/* TABS: REGISTRATIONS vs CONTENT MANAGEMENT */}
+      {/* TABS: REGISTRATIONS, SUBMISSIONS, CONTENT */}
       <Tabs defaultValue="registrations" className="space-y-6">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2">
-          <TabsTrigger value="registrations">Registration Management</TabsTrigger>
+        <TabsList className="grid w-full sm:w-auto grid-cols-3">
+          <TabsTrigger value="registrations">Registrations ({registrations.length})</TabsTrigger>
+          <TabsTrigger value="submissions">Submissions ({submissions.length})</TabsTrigger>
           <TabsTrigger value="content">Content & Settings</TabsTrigger>
         </TabsList>
 
@@ -449,7 +466,156 @@ export const AdminHackathon: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: CONTENT & SETTINGS MANAGEMENT */}
+        {/* TAB 2: PROJECT SUBMISSIONS */}
+        <TabsContent value="submissions" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+              <div>
+                <CardTitle className="text-lg">Hackathon Project Submissions</CardTitle>
+                <CardDescription>
+                  Review participant code repositories, live demo URLs, pitch decks, and AI tool usage.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => hackathonService.exportSubmissionsCSV(submissions)}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Export Submissions CSV ({submissions.length})
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search submissions by project title, team name, track, or tech stack..."
+                  value={submissionSearch}
+                  onChange={(e) => setSubmissionSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Submissions Table */}
+              <div className="rounded-md border border-border overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-left font-medium text-muted-foreground">
+                      <th className="p-3">Team & Project</th>
+                      <th className="p-3">Track</th>
+                      <th className="p-3">Pitch / Tagline</th>
+                      <th className="p-3">AI Tools & Tech</th>
+                      <th className="p-3">Deliverables</th>
+                      <th className="p-3">Submitted At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {submissions.filter((s) => {
+                      const q = submissionSearch.toLowerCase();
+                      return (
+                        !q ||
+                        s.project_title.toLowerCase().includes(q) ||
+                        s.team_name.toLowerCase().includes(q) ||
+                        s.team_id.toLowerCase().includes(q) ||
+                        s.track.toLowerCase().includes(q) ||
+                        s.tagline.toLowerCase().includes(q) ||
+                        s.ai_tools?.some((t) => t.toLowerCase().includes(q))
+                      );
+                    }).length > 0 ? (
+                      submissions
+                        .filter((s) => {
+                          const q = submissionSearch.toLowerCase();
+                          return (
+                            !q ||
+                            s.project_title.toLowerCase().includes(q) ||
+                            s.team_name.toLowerCase().includes(q) ||
+                            s.team_id.toLowerCase().includes(q) ||
+                            s.track.toLowerCase().includes(q) ||
+                            s.tagline.toLowerCase().includes(q) ||
+                            s.ai_tools?.some((t) => t.toLowerCase().includes(q))
+                          );
+                        })
+                        .map((sub) => (
+                          <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="font-bold text-foreground text-sm">{sub.project_title}</div>
+                              <div className="text-xs text-primary font-mono">{sub.team_name} ({sub.team_id})</div>
+                              <div className="text-[11px] text-muted-foreground">{sub.leader_name} • {sub.leader_email}</div>
+                            </td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">
+                                {sub.track}
+                              </span>
+                            </td>
+                            <td className="p-3 max-w-xs">
+                              <div className="font-medium text-xs text-foreground line-clamp-1">{sub.tagline}</div>
+                              <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{sub.description}</div>
+                            </td>
+                            <td className="p-3 max-w-[200px]">
+                              <div className="flex flex-wrap gap-1">
+                                {sub.ai_tools?.slice(0, 3).map((t, idx) => (
+                                  <span key={idx} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-mono">
+                                    {t}
+                                  </span>
+                                ))}
+                                {sub.ai_tools?.length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground">+{sub.ai_tools.length - 3}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {sub.github_url && (
+                                  <a href={sub.github_url} target="_blank" rel="noreferrer">
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs flex items-center gap-1">
+                                      <Github className="h-3.5 w-3.5" /> Code
+                                    </Button>
+                                  </a>
+                                )}
+                                {sub.demo_url && (
+                                  <a href={sub.demo_url} target="_blank" rel="noreferrer">
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 flex items-center gap-1">
+                                      <Globe className="h-3.5 w-3.5" /> Demo
+                                    </Button>
+                                  </a>
+                                )}
+                                {sub.video_url && (
+                                  <a href={sub.video_url} target="_blank" rel="noreferrer">
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 flex items-center gap-1">
+                                      <Video className="h-3.5 w-3.5" /> Video
+                                    </Button>
+                                  </a>
+                                )}
+                                {sub.presentation_url && (
+                                  <a href={sub.presentation_url} target="_blank" rel="noreferrer">
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10 flex items-center gap-1">
+                                      <Presentation className="h-3.5 w-3.5" /> Slides
+                                    </Button>
+                                  </a>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">
+                              {new Date(sub.submitted_at).toLocaleDateString()} {new Date(sub.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                          No project submissions found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: CONTENT & SETTINGS MANAGEMENT */}
         <TabsContent value="content" className="space-y-6">
           <Card>
             <CardHeader>

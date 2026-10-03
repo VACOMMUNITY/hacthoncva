@@ -381,4 +381,213 @@ export const hackathonService = {
     link.click();
     document.body.removeChild(link);
   },
+
+  // 9. Participant Project Submissions
+  async submitProject(payload: {
+    team_id: string;
+    team_name: string;
+    leader_name: string;
+    leader_email: string;
+    project_title: string;
+    track: string;
+    tagline: string;
+    description: string;
+    ai_tools: string[];
+    tech_stack: string[];
+    github_url: string;
+    demo_url?: string;
+    video_url?: string;
+    presentation_url?: string;
+  }): Promise<{ data: ProjectSubmission | null; error: string | null }> {
+    const newSubmission: ProjectSubmission = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      team_id: payload.team_id.trim(),
+      team_name: payload.team_name.trim(),
+      leader_name: payload.leader_name.trim(),
+      leader_email: payload.leader_email.trim(),
+      project_title: payload.project_title.trim(),
+      track: payload.track,
+      tagline: payload.tagline.trim(),
+      description: payload.description.trim(),
+      ai_tools: payload.ai_tools || [],
+      tech_stack: payload.tech_stack || [],
+      github_url: payload.github_url.trim(),
+      demo_url: payload.demo_url?.trim() || undefined,
+      video_url: payload.video_url?.trim() || undefined,
+      presentation_url: payload.presentation_url?.trim() || undefined,
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('hackathon_project_submissions' as any)
+        .insert([newSubmission])
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Supabase submission insert error, saving to local storage fallback:', error.message);
+        const local = this.getLocalSubmissions();
+        const existingIdx = local.findIndex((s) => s.team_id.toLowerCase() === newSubmission.team_id.toLowerCase());
+        if (existingIdx >= 0) {
+          local[existingIdx] = newSubmission;
+        } else {
+          local.unshift(newSubmission);
+        }
+        localStorage.setItem('cva_hackathon_submissions', JSON.stringify(local));
+        return { data: newSubmission, error: null };
+      }
+
+      // Also mirror locally
+      const local = this.getLocalSubmissions();
+      local.unshift(data as unknown as ProjectSubmission);
+      localStorage.setItem('cva_hackathon_submissions', JSON.stringify(local));
+      return { data: data as unknown as ProjectSubmission, error: null };
+    } catch {
+      const local = this.getLocalSubmissions();
+      const existingIdx = local.findIndex((s) => s.team_id.toLowerCase() === newSubmission.team_id.toLowerCase());
+      if (existingIdx >= 0) {
+        local[existingIdx] = newSubmission;
+      } else {
+        local.unshift(newSubmission);
+      }
+      localStorage.setItem('cva_hackathon_submissions', JSON.stringify(local));
+      return { data: newSubmission, error: null };
+    }
+  },
+
+  getLocalSubmissions(): ProjectSubmission[] {
+    const raw = localStorage.getItem('cva_hackathon_submissions');
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  },
+
+  async getProjectSubmissions(): Promise<ProjectSubmission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('hackathon_project_submissions' as any)
+        .select('*')
+        .order('submitted_at', { ascending: false });
+
+      if (error || !data) {
+        return this.getLocalSubmissions();
+      }
+
+      // Merge remote and local
+      const local = this.getLocalSubmissions();
+      const combined = [...(data as unknown as ProjectSubmission[])];
+      for (const loc of local) {
+        if (!combined.some((c) => c.team_id === loc.team_id)) {
+          combined.push(loc);
+        }
+      }
+      return combined;
+    } catch {
+      return this.getLocalSubmissions();
+    }
+  },
+
+  async getProjectSubmissionByTeamId(teamId: string): Promise<ProjectSubmission | null> {
+    const cleanId = teamId.trim().toLowerCase();
+    try {
+      const { data, error } = await supabase
+        .from('hackathon_project_submissions' as any)
+        .select('*')
+        .ilike('team_id', cleanId)
+        .single();
+
+      if (!error && data) {
+        return data as unknown as ProjectSubmission;
+      }
+    } catch {}
+
+    const local = this.getLocalSubmissions();
+    return local.find((s) => s.team_id.toLowerCase() === cleanId) || null;
+  },
+
+  exportSubmissionsCSV(submissions: ProjectSubmission[]) {
+    const sanitizeCsv = (val: any): string => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      if (/^[=+\-@\t\r]/.test(str)) {
+        return `"'${str}"`;
+      }
+      return `"${str}"`;
+    };
+
+    const headers = [
+      'Team ID',
+      'Team Name',
+      'Leader Name',
+      'Leader Email',
+      'Project Title',
+      'Track',
+      'Tagline',
+      'Description',
+      'AI Tools',
+      'Tech Stack',
+      'GitHub Repository',
+      'Live Demo URL',
+      'Video URL',
+      'Presentation URL',
+      'Status',
+      'Submission Timestamp',
+    ];
+
+    const rows = submissions.map((s) => [
+      sanitizeCsv(s.team_id),
+      sanitizeCsv(s.team_name),
+      sanitizeCsv(s.leader_name),
+      sanitizeCsv(s.leader_email),
+      sanitizeCsv(s.project_title),
+      sanitizeCsv(s.track),
+      sanitizeCsv(s.tagline),
+      sanitizeCsv(s.description),
+      sanitizeCsv(s.ai_tools?.join(', ') || ''),
+      sanitizeCsv(s.tech_stack?.join(', ') || ''),
+      sanitizeCsv(s.github_url),
+      sanitizeCsv(s.demo_url || ''),
+      sanitizeCsv(s.video_url || ''),
+      sanitizeCsv(s.presentation_url || ''),
+      sanitizeCsv(s.status),
+      sanitizeCsv(new Date(s.submitted_at).toLocaleString()),
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `community_va_project_submissions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
 };
+
+export interface ProjectSubmission {
+  id: string;
+  team_id: string;
+  team_name: string;
+  leader_name: string;
+  leader_email: string;
+  project_title: string;
+  track: string;
+  tagline: string;
+  description: string;
+  ai_tools: string[];
+  tech_stack: string[];
+  github_url: string;
+  demo_url?: string;
+  video_url?: string;
+  presentation_url?: string;
+  status: 'submitted' | 'under_review' | 'shortlisted' | 'winner';
+  submitted_at: string;
+  updated_at?: string;
+}
+

@@ -33,6 +33,7 @@ import {
   Accessibility,
   Flame,
   Wand2,
+  UploadCloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import AICanvasBackground from '@/components/hackathon/AICanvasBackground';
 import RegistrationModal from '@/components/hackathon/RegistrationModal';
+import ProjectSubmissionModal from '@/components/hackathon/ProjectSubmissionModal';
 import TicketCanvas from '@/components/hackathon/TicketCanvas';
 import {
   hackathonService,
@@ -65,6 +67,7 @@ export const Hackathon2026: React.FC = () => {
 
   // Modals
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<
     'Early Bird' | 'Regular' | 'Last Minute'
   >('Early Bird');
@@ -222,7 +225,17 @@ export const Hackathon2026: React.FC = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSubmissionOpen(true)}
+              className="border-purple-500/60 bg-purple-950/40 text-purple-300 hover:bg-purple-500/20 text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all font-semibold"
+            >
+              <UploadCloud className="h-3.5 w-3.5 text-purple-400" />
+              <span>Submit Project</span>
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -230,7 +243,7 @@ export const Hackathon2026: React.FC = () => {
                 const el = document.getElementById('ticket-check');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="hidden sm:flex border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 text-xs"
+              className="hidden md:flex border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 text-xs"
             >
               Get Ticket Pass
             </Button>
@@ -238,7 +251,7 @@ export const Hackathon2026: React.FC = () => {
             <Button
               onClick={() => handleOpenRegistration('Early Bird', 149)}
               size="sm"
-              className="cyber-button-glow text-slate-950 font-bold px-5 text-xs sm:text-sm"
+              className="cyber-button-glow text-slate-950 font-bold px-4 sm:px-5 text-xs sm:text-sm"
             >
               Register Now
             </Button>
@@ -931,8 +944,22 @@ export const Hackathon2026: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-xl cyber-card-glass border border-cyan-500/20 group-hover:border-cyan-400/50 transition-colors">
-                  <h4 className="font-bold text-white text-base">{slot.title}</h4>
-                  <p className="text-xs text-slate-400 mt-1">{slot.desc}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-white text-base">{slot.title}</h4>
+                      <p className="text-xs text-slate-400 mt-1">{slot.desc}</p>
+                    </div>
+                    {slot.title.includes('Submission') && (
+                      <Button
+                        size="sm"
+                        onClick={() => setIsSubmissionOpen(true)}
+                        className="cyber-button-glow font-bold text-slate-950 text-xs px-4 shrink-0 flex items-center gap-1.5 self-start sm:self-auto"
+                      >
+                        <UploadCloud className="h-3.5 w-3.5" />
+                        <span>Submit Project</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -1246,6 +1273,13 @@ export const Hackathon2026: React.FC = () => {
             });
           }
         }}
+      />
+
+      {/* PROJECT SUBMISSION MODAL */}
+      <ProjectSubmissionModal
+        isOpen={isSubmissionOpen}
+        onClose={() => setIsSubmissionOpen(false)}
+        initialTeamId={lookedUpReg?.team_id || ''}
       />
     </div>
   );

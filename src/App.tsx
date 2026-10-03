@@ -30,6 +30,14 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route
+              path="/"
+              element={
+                <ErrorBoundary fallbackTitle="Hackathon 2026">
+                  <Hackathon2026 />
+                </ErrorBoundary>
+              }
+            />
+            <Route
               path="/hackathon-2026"
               element={
                 <ErrorBoundary fallbackTitle="Hackathon 2026">
@@ -38,7 +46,6 @@ const App = () => (
               }
             />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route

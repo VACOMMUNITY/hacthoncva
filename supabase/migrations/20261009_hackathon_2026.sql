@@ -125,3 +125,50 @@ ON storage.objects FOR SELECT
 TO anon, authenticated
 USING (bucket_id = 'hackathon-receipts');
 
+-- 3. Create Hackathon Project Submissions Table
+CREATE TABLE IF NOT EXISTS public.hackathon_project_submissions (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    team_name TEXT NOT NULL,
+    leader_name TEXT NOT NULL,
+    leader_email TEXT NOT NULL,
+    project_title TEXT NOT NULL,
+    track TEXT NOT NULL,
+    tagline TEXT NOT NULL,
+    description TEXT NOT NULL,
+    ai_tools JSONB NOT NULL DEFAULT '[]'::jsonb,
+    tech_stack JSONB NOT NULL DEFAULT '[]'::jsonb,
+    github_url TEXT NOT NULL,
+    demo_url TEXT,
+    video_url TEXT,
+    presentation_url TEXT,
+    status TEXT NOT NULL DEFAULT 'submitted', -- 'submitted', 'under_review', 'shortlisted', 'winner'
+    submitted_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hackathon_sub_team_id ON public.hackathon_project_submissions(team_id);
+ALTER TABLE public.hackathon_project_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can submit hackathon project"
+ON public.hackathon_project_submissions FOR INSERT
+TO anon, authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Public and authenticated can read hackathon project submissions"
+ON public.hackathon_project_submissions FOR SELECT
+TO anon, authenticated
+USING (true);
+
+CREATE POLICY "Admins can update hackathon project submissions"
+ON public.hackathon_project_submissions FOR UPDATE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'))
+WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can delete hackathon project submissions"
+ON public.hackathon_project_submissions FOR DELETE
+TO authenticated
+USING (public.has_role(auth.uid(), 'admin'));
+
+
