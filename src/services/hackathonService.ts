@@ -62,9 +62,9 @@ const DEFAULT_SETTINGS: HackathonSettings = {
   team_size: '2–4 Members',
   early_bird_total: 50,
   early_bird_remaining: 31,
-  early_bird_price: 149,
-  regular_price: 249,
-  last_minute_price: 299,
+  early_bird_price: 299,
+  regular_price: 299,
+  last_minute_price: 399,
   prize_winner: 10000,
   prize_runner_up: 5000,
   prize_second_runner_up: 3000,
@@ -91,7 +91,7 @@ const DEFAULT_SETTINGS: HackathonSettings = {
     },
     {
       question: 'What is the registration fee structure?',
-      answer: 'Registration is in three tiers: Early Bird at ₹149 (first 50 teams only), Regular at ₹249, and Last Minute at ₹299 per team.',
+      answer: 'Registration is in two phases: Early Bird at ₹299 (first 50 teams only) and Final / Late Pass at ₹399 per team.',
     },
     {
       question: 'Will all participants receive certificates?',

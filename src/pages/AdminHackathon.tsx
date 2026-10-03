@@ -74,9 +74,9 @@ export const AdminHackathon: React.FC = () => {
   const [eventDate, setEventDate] = useState('');
   const [countdownTarget, setCountdownTarget] = useState('');
   const [earlyBirdRemaining, setEarlyBirdRemaining] = useState(31);
-  const [earlyBirdPrice, setEarlyBirdPrice] = useState(149);
-  const [regularPrice, setRegularPrice] = useState(249);
-  const [lastMinutePrice, setLastMinutePrice] = useState(299);
+  const [earlyBirdPrice, setEarlyBirdPrice] = useState(299);
+  const [regularPrice, setRegularPrice] = useState(299);
+  const [lastMinutePrice, setLastMinutePrice] = useState(399);
   const [prizeWinner, setPrizeWinner] = useState(10000);
   const [prizeRunnerUp, setPrizeRunnerUp] = useState(5000);
   const [prizeSecondRunnerUp, setPrizeSecondRunnerUp] = useState(3000);
