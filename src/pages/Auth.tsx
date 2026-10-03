@@ -20,8 +20,8 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().min(1, 'Email or username is required'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 const signupSchema = z.object({
@@ -38,7 +38,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 type SignupFormData = z.infer<typeof signupSchema>;
 
 const Auth = () => {
-  const { user, signIn, signUp, isLoading } = useAuth();
+  const { user, signIn, signUp, isLoading, isAdmin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -61,6 +61,9 @@ const Auth = () => {
   }
 
   if (user) {
+    if (isAdmin) {
+      return <Navigate to="/admin/hackathon" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -74,6 +77,11 @@ const Auth = () => {
         title: 'Login Failed',
         description: error.message,
         variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Logged in successfully',
+        description: 'Redirecting to your dashboard...',
       });
     }
   };
@@ -108,13 +116,13 @@ const Auth = () => {
             </div>
             <span className="font-bold text-2xl text-foreground">community.va</span>
           </div>
-          <p className="text-muted-foreground">Leads Management Platform</p>
+          <p className="text-muted-foreground">Admin & Leads Management Platform</p>
         </div>
 
         <Card className="shadow-lg border-border/50">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-xl">Welcome</CardTitle>
-            <CardDescription>Sign in to manage your leads</CardDescription>
+            <CardDescription>Sign in to manage hackathon registrations & leads</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
@@ -131,9 +139,9 @@ const Auth = () => {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="you@example.com" {...field} />
+                            <Input placeholder="admin or you@example.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -158,6 +166,28 @@ const Auth = () => {
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Sign In
                     </Button>
+
+                    {/* Admin Credentials Helper Callout */}
+                    <div className="mt-4 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <div className="font-semibold text-cyan-500">Admin Login Credentials</div>
+                        <div className="text-muted-foreground font-mono mt-0.5">
+                          Username: <span className="text-foreground font-semibold">admin</span> | Pass: <span className="text-foreground font-semibold">admin123</span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-xs border-cyan-500/40 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-medium whitespace-nowrap"
+                        onClick={() => {
+                          loginForm.setValue('email', 'admin');
+                          loginForm.setValue('password', 'admin123');
+                        }}
+                      >
+                        Auto-Fill
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </TabsContent>

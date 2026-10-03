@@ -64,7 +64,7 @@ export const AdminHackathon: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   // Proof Modal
-  const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
+  const [selectedProofReg, setSelectedProofReg] = useState<HackathonRegistration | null>(null);
 
   // Reject Dialog
   const [rejectingReg, setRejectingReg] = useState<HackathonRegistration | null>(null);
@@ -399,15 +399,22 @@ export const AdminHackathon: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setViewProofUrl(reg.payment_screenshot_url!)}
-                                className="h-8 px-2 text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 text-xs flex items-center gap-1"
+                                onClick={() => setSelectedProofReg(reg)}
+                                className="h-8 px-2 text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 text-xs flex items-center gap-1 font-medium"
                               >
                                 <Eye className="h-3.5 w-3.5" /> View Proof
                               </Button>
+                            ) : reg.transaction_id ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedProofReg(reg)}
+                                className="h-8 px-2 text-amber-500 hover:text-amber-600 dark:text-amber-400 text-xs flex items-center gap-1 font-mono"
+                              >
+                                <Eye className="h-3.5 w-3.5" /> Txn: {reg.transaction_id.slice(0, 8)}...
+                              </Button>
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                {reg.transaction_id ? `ID: ${reg.transaction_id}` : 'No proof'}
-                              </span>
+                              <span className="text-xs text-muted-foreground">No proof</span>
                             )}
                           </td>
                           <td className="p-3">
@@ -785,21 +792,126 @@ export const AdminHackathon: React.FC = () => {
       </Tabs>
 
       {/* VIEW PAYMENT PROOF MODAL */}
-      <Dialog open={!!viewProofUrl} onOpenChange={() => setViewProofUrl(null)}>
-        <DialogContent className="max-w-xl bg-slate-950 text-white border-cyan-500/30">
-          <DialogHeader>
-            <DialogTitle>Payment Verification Proof</DialogTitle>
-            <DialogDescription>
-              Screenshot submitted by participant during UPI payment checkout.
-            </DialogDescription>
-          </DialogHeader>
-          {viewProofUrl && (
-            <div className="p-2 flex items-center justify-center bg-black/60 rounded-xl overflow-hidden">
-              <img
-                src={viewProofUrl}
-                alt="Payment proof screenshot"
-                className="max-h-[70vh] object-contain rounded-lg"
-              />
+      <Dialog open={!!selectedProofReg} onOpenChange={() => setSelectedProofReg(null)}>
+        <DialogContent className="max-w-2xl bg-slate-950 text-white border-cyan-500/30 max-h-[90vh] overflow-y-auto">
+          {selectedProofReg && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                    Payment Proof • {selectedProofReg.team_name}
+                  </DialogTitle>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedProofReg.payment_status === 'approved'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : selectedProofReg.payment_status === 'rejected'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}
+                  >
+                    {selectedProofReg.payment_status.toUpperCase()}
+                  </span>
+                </div>
+                <DialogDescription className="text-slate-400 text-xs">
+                  Team ID: <span className="font-mono text-cyan-400 font-semibold">{selectedProofReg.team_id}</span> • Leader: {selectedProofReg.leader_name} ({selectedProofReg.phone}) • Amount: <span className="font-bold text-white">₹{selectedProofReg.amount}</span> ({selectedProofReg.registration_phase})
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Transaction ID if specified */}
+              {selectedProofReg.transaction_id && (
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-400 font-medium">UPI Ref / Transaction ID:</span>
+                  <span className="font-mono font-bold text-cyan-300 text-sm select-all">
+                    {selectedProofReg.transaction_id}
+                  </span>
+                </div>
+              )}
+
+              {/* Screenshot display */}
+              {selectedProofReg.payment_screenshot_url ? (
+                <div className="space-y-3">
+                  <div className="p-2 flex items-center justify-center bg-black/80 rounded-xl border border-slate-800 overflow-hidden">
+                    <img
+                      src={selectedProofReg.payment_screenshot_url}
+                      alt={`Payment proof for ${selectedProofReg.team_name}`}
+                      className="max-h-[55vh] object-contain rounded-lg"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(selectedProofReg.payment_screenshot_url, '_blank')}
+                      className="text-xs flex items-center gap-1.5 border-slate-700 hover:bg-slate-800 text-slate-200"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 text-cyan-400" /> Open Full Image
+                    </Button>
+                    <a
+                      href={selectedProofReg.payment_screenshot_url}
+                      download={`payment-proof-${selectedProofReg.team_id}.png`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs flex items-center gap-1.5 border-slate-700 hover:bg-slate-800 text-slate-200"
+                      >
+                        <Download className="h-3.5 w-3.5 text-emerald-400" /> Download Proof
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center border border-dashed border-slate-800 rounded-xl text-muted-foreground space-y-2">
+                  <p className="text-sm">No payment screenshot image uploaded for this registration.</p>
+                  {selectedProofReg.transaction_id && (
+                    <p className="text-xs text-slate-300">
+                      Verify through UPI Ref ID: <span className="font-mono text-cyan-400">{selectedProofReg.transaction_id}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Quick Actions in Proof Modal */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                {selectedProofReg.payment_status !== 'approved' && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const regToApprove = selectedProofReg;
+                      setSelectedProofReg(null);
+                      handleApprove(regToApprove);
+                    }}
+                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" /> Approve Payment
+                  </Button>
+                )}
+                {selectedProofReg.payment_status !== 'rejected' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const regToReject = selectedProofReg;
+                      setSelectedProofReg(null);
+                      setRejectingReg(regToReject);
+                    }}
+                    className="h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 flex items-center gap-1"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Reject
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedProofReg(null)}
+                  className="h-8 text-xs text-slate-400 hover:text-white"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

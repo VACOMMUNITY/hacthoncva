@@ -9,20 +9,20 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAdmin, isLoading } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
   const { toast } = useToast();
   const [hasNotified, setHasNotified] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isLoading && !isAdmin && !hasNotified) {
+    if (!isLoading && (!user || !isAdmin) && !hasNotified) {
       toast({
-        title: 'Access Restricted',
-        description: 'You do not have permission to access the hackathon administration console.',
+        title: 'Admin Access Required',
+        description: 'Please sign in with administrator credentials (admin / admin123).',
         variant: 'destructive',
       });
       setHasNotified(true);
     }
-  }, [isLoading, isAdmin, hasNotified, toast]);
+  }, [isLoading, user, isAdmin, hasNotified, toast]);
 
   if (isLoading) {
     return (
@@ -30,6 +30,10 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
   }
 
   if (!isAdmin) {

@@ -349,7 +349,12 @@ export const hackathonService = {
       'Members List',
       'Phase',
       'Amount',
+      'Transaction ID',
+      'Payment Proof URL',
+      'GitHub URL',
+      'LinkedIn URL',
       'Status',
+      'Rejection Reason',
       'Registration Date',
     ];
 
@@ -367,7 +372,12 @@ export const hackathonService = {
       sanitizeCsv(r.team_members?.map((m) => `${m.name} (${m.email})`).join('; ') || 'Solo/None'),
       sanitizeCsv(r.registration_phase),
       r.amount,
+      sanitizeCsv(r.transaction_id || ''),
+      sanitizeCsv(r.payment_screenshot_url || ''),
+      sanitizeCsv(r.github_url || ''),
+      sanitizeCsv(r.linkedin_url || ''),
       sanitizeCsv(r.payment_status),
+      sanitizeCsv(r.rejection_reason || ''),
       sanitizeCsv(new Date(r.created_at).toLocaleString()),
     ]);
 

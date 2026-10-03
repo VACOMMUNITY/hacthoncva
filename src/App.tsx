@@ -46,6 +46,7 @@ const App = () => (
               }
             />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<Navigate to="/admin/hackathon" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route

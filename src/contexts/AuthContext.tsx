@@ -105,11 +105,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Fast-path demo login
-    if (email === 'admin@community.va' && password === 'admin123') {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Fast-path demo login with admin / admin123
+    if ((cleanEmail === 'admin' || cleanEmail === 'admin@community.va') && password === 'admin123') {
       const mockUser = {
         id: 'admin-demo-id',
-        email,
+        email: 'admin@community.va',
         app_metadata: {},
         user_metadata: { full_name: 'Community.VA Admin' },
         aud: 'authenticated',
@@ -118,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const mockProfile: Profile = {
         id: 'admin-demo-id',
-        email,
+        email: 'admin@community.va',
         full_name: 'Community.VA Admin',
         avatar_url: null,
         created_at: new Date().toISOString(),
@@ -133,29 +135,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (error) {
         // If network / DNS failed, allow login as local coordinator session (only admin if matching admin email)
         if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
           const fallbackUser = {
             id: `user-${Date.now()}`,
-            email,
+            email: cleanEmail,
             app_metadata: {},
-            user_metadata: { full_name: email.split('@')[0] },
+            user_metadata: { full_name: cleanEmail.split('@')[0] },
             aud: 'authenticated',
             created_at: new Date().toISOString(),
           } as unknown as User;
 
           const fallbackProfile: Profile = {
             id: fallbackUser.id,
-            email,
-            full_name: email.split('@')[0],
+            email: cleanEmail,
+            full_name: cleanEmail.split('@')[0],
             avatar_url: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
 
-          const assignedRole: AppRole = email === 'admin@community.va' ? 'admin' : 'coordinator';
+          const assignedRole: AppRole = (cleanEmail === 'admin' || cleanEmail === 'admin@community.va') ? 'admin' : 'coordinator';
           setUser(fallbackUser);
           setProfile(fallbackProfile);
           setRole(assignedRole);
