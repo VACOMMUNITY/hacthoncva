@@ -42,6 +42,10 @@ import {
   Video,
   Presentation,
   Github,
+  Mail,
+  Phone,
+  Copy,
+  UserCheck,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -65,6 +69,9 @@ export const AdminHackathon: React.FC = () => {
 
   // Proof Modal
   const [selectedProofReg, setSelectedProofReg] = useState<HackathonRegistration | null>(null);
+
+  // Full Team & Members Details Modal
+  const [selectedTeamForDetails, setSelectedTeamForDetails] = useState<HackathonRegistration | null>(null);
 
   // Reject Dialog
   const [rejectingReg, setRejectingReg] = useState<HackathonRegistration | null>(null);
@@ -440,12 +447,24 @@ export const AdminHackathon: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-3">
-                            <div className="text-xs font-semibold">
-                              {(reg.team_members?.length || 0) + 1} Members
-                            </div>
-                            <div className="text-[11px] text-muted-foreground max-w-[140px] truncate">
-                              {reg.team_members?.map((m) => m.name).join(', ') || 'Solo/None'}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTeamForDetails(reg)}
+                              className="text-left group hover:opacity-90 transition-all p-1.5 rounded-lg hover:bg-muted/60 -ml-1.5"
+                              title="Click to view all member names, emails, phones & roles"
+                            >
+                              <div className="text-xs font-bold text-cyan-600 dark:text-cyan-400 group-hover:underline flex items-center gap-1">
+                                <Users className="h-3.5 w-3.5" />
+                                {(reg.team_members?.length || 0) + 1} Members
+                              </div>
+                              <div className="text-[11px] text-muted-foreground max-w-[170px] truncate mt-0.5">
+                                <span className="font-semibold text-foreground">{reg.leader_name}</span>
+                                {reg.team_members && reg.team_members.length > 0
+                                  ? `, ${reg.team_members.map((m) => m.name).join(', ')}`
+                                  : ' (Solo)'}
+                              </div>
+                              <span className="text-[10px] text-primary font-medium block mt-0.5">View Members Details →</span>
+                            </button>
                           </td>
                           <td className="p-3 font-mono font-bold">
                             ₹{reg.amount}
@@ -494,7 +513,16 @@ export const AdminHackathon: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedTeamForDetails(reg)}
+                                className="h-7 text-xs border-cyan-500/40 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 flex items-center gap-1 font-medium"
+                                title="View full team members details"
+                              >
+                                <UserCheck className="h-3.5 w-3.5" /> Details
+                              </Button>
                               {reg.payment_status !== 'approved' && (
                                 <Button
                                   size="sm"
@@ -975,6 +1003,296 @@ export const AdminHackathon: React.FC = () => {
                   size="sm"
                   onClick={() => setSelectedProofReg(null)}
                   className="h-8 text-xs text-slate-400 hover:text-white"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* VIEW FULL TEAM & MEMBERS DETAILS MODAL */}
+      <Dialog open={!!selectedTeamForDetails} onOpenChange={() => setSelectedTeamForDetails(null)}>
+        <DialogContent className="max-w-3xl bg-slate-950 text-white border-cyan-500/30 max-h-[92vh] overflow-y-auto p-6 sm:p-8">
+          {selectedTeamForDetails && (
+            <div className="space-y-6">
+              <DialogHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <DialogTitle className="text-2xl font-black text-white">
+                        {selectedTeamForDetails.team_name}
+                      </DialogTitle>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          selectedTeamForDetails.payment_status === 'approved'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : selectedTeamForDetails.payment_status === 'rejected'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        }`}
+                      >
+                        {selectedTeamForDetails.payment_status}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-400">
+                      <span className="font-mono text-cyan-400 font-semibold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                        {selectedTeamForDetails.team_id}
+                      </span>
+                      <span>•</span>
+                      <span>Registered on {new Date(selectedTeamForDetails.created_at).toLocaleString()}</span>
+                      <span>•</span>
+                      <span className="text-amber-400 font-semibold">{selectedTeamForDetails.registration_phase} (₹{selectedTeamForDetails.amount})</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allInfo = [
+                          `Team: ${selectedTeamForDetails.team_name} (${selectedTeamForDetails.team_id})`,
+                          `Leader: ${selectedTeamForDetails.leader_name} (${selectedTeamForDetails.email} / ${selectedTeamForDetails.phone})`,
+                          `College: ${selectedTeamForDetails.college} - ${selectedTeamForDetails.branch} (${selectedTeamForDetails.year})`,
+                          `Track: ${selectedTeamForDetails.track}`,
+                          `Members (${(selectedTeamForDetails.team_members?.length || 0) + 1}):`,
+                          `1. ${selectedTeamForDetails.leader_name} (Lead) - ${selectedTeamForDetails.email} / ${selectedTeamForDetails.phone}`,
+                          ...(selectedTeamForDetails.team_members || []).map((m, idx) => `${idx + 2}. ${m.name} (${m.role || 'Member'}) - ${m.email}${m.phone ? ` / ${m.phone}` : ''}`)
+                        ].join('\n');
+                        navigator.clipboard.writeText(allInfo);
+                        toast({ title: 'Copied!', description: 'All team & member details copied to clipboard.' });
+                      }}
+                      className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200 flex items-center gap-1.5"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-cyan-400" /> Copy All Details
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* TEAM METADATA SUMMARY */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[11px]">College / University</span>
+                  <span className="font-semibold text-white text-sm">{selectedTeamForDetails.college}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Year & Branch</span>
+                  <span className="font-semibold text-white text-sm">{selectedTeamForDetails.year} • {selectedTeamForDetails.branch}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Chosen Track</span>
+                  <span className="font-semibold text-cyan-400 text-sm">{selectedTeamForDetails.track}</span>
+                </div>
+              </div>
+
+              {/* REGISTERED MEMBERS LIST */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-cyan-400" />
+                    Registered Members ({(selectedTeamForDetails.team_members?.length || 0) + 1} Total)
+                  </h4>
+                  <span className="text-xs text-muted-foreground">Team Size: 2–4 Members</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Member 1: Leader */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-950/40 to-slate-900 border border-cyan-500/30 space-y-2 relative">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                        👑 Team Leader
+                      </span>
+                      <span className="text-xs text-slate-400">Member #1</span>
+                    </div>
+                    <div className="text-base font-bold text-white">{selectedTeamForDetails.leader_name}</div>
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Mail className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                        <a href={`mailto:${selectedTeamForDetails.email}`} className="hover:underline hover:text-cyan-300 truncate">
+                          {selectedTeamForDetails.email}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Phone className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                        <a href={`tel:${selectedTeamForDetails.phone}`} className="hover:underline hover:text-cyan-300 font-mono">
+                          {selectedTeamForDetails.phone}
+                        </a>
+                        <a
+                          href={`https://wa.me/91${selectedTeamForDetails.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="ml-auto text-[10px] text-emerald-400 hover:underline"
+                        >
+                          WhatsApp ↗
+                        </a>
+                      </div>
+                    </div>
+                    {(selectedTeamForDetails.github_url || selectedTeamForDetails.linkedin_url) && (
+                      <div className="flex items-center gap-3 pt-2 border-t border-slate-800 text-xs">
+                        {selectedTeamForDetails.github_url && (
+                          <a href={selectedTeamForDetails.github_url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px]">
+                            <Github className="h-3 w-3" /> GitHub
+                          </a>
+                        )}
+                        {selectedTeamForDetails.linkedin_url && (
+                          <a href={selectedTeamForDetails.linkedin_url} target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline flex items-center gap-1 text-[11px]">
+                            <ExternalLink className="h-3 w-3" /> LinkedIn
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Registered Teammates */}
+                  {selectedTeamForDetails.team_members && selectedTeamForDetails.team_members.length > 0 ? (
+                    selectedTeamForDetails.team_members.map((member, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            👤 Teammate #{idx + 2}
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-400">
+                            {member.role || 'Developer'}
+                          </span>
+                        </div>
+                        <div className="text-base font-bold text-white">{member.name || `Teammate ${idx + 2}`}</div>
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center gap-2 text-slate-300">
+                            <Mail className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                            <a href={`mailto:${member.email}`} className="hover:underline hover:text-purple-300 truncate">
+                              {member.email}
+                            </a>
+                          </div>
+                          {member.phone && (
+                            <div className="flex items-center gap-2 text-slate-300">
+                              <Phone className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                              <a href={`tel:${member.phone}`} className="hover:underline hover:text-purple-300 font-mono">
+                                {member.phone}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-dashed border-slate-800 flex items-center justify-center text-center text-slate-500 text-xs">
+                      Solo Participant or Additional Teammates Not Registered Yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PAYMENT & PROOF VERIFICATION SECTION */}
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <IndianRupee className="h-3.5 w-3.5 text-emerald-400" />
+                    Payment Details & Verification Proof
+                  </h4>
+                  {selectedTeamForDetails.payment_screenshot_url && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedProofReg(selectedTeamForDetails);
+                      }}
+                      className="h-7 text-xs text-cyan-400 hover:text-cyan-300"
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" /> View Full Screenshot Proof
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Fee Paid</span>
+                    <span className="font-bold text-white text-sm">₹{selectedTeamForDetails.amount}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">UPI Transaction ID</span>
+                    <span className="font-mono text-cyan-300 font-bold select-all">
+                      {selectedTeamForDetails.transaction_id || 'Not Specified'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Verification Status</span>
+                    <span className="font-semibold capitalize text-slate-200">
+                      {selectedTeamForDetails.payment_status}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedTeamForDetails.payment_screenshot_url && (
+                  <div className="pt-2 flex items-center gap-3">
+                    <div
+                      className="h-20 w-32 rounded-lg bg-black/60 border border-slate-700 overflow-hidden shrink-0 cursor-pointer"
+                      onClick={() => setSelectedProofReg(selectedTeamForDetails)}
+                    >
+                      <img
+                        src={selectedTeamForDetails.payment_screenshot_url}
+                        alt="Payment receipt preview"
+                        className="h-full w-full object-cover hover:scale-105 transition-transform"
+                      />
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="text-slate-300 font-medium">Receipt Screenshot Uploaded</div>
+                      <p className="text-[11px] text-slate-500">Click to view full image, zoom, or download proof.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedProofReg(selectedTeamForDetails)}
+                        className="h-6 text-[11px] text-cyan-400 border-cyan-500/30"
+                      >
+                        Inspect Proof Screenshot
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* MODAL FOOTER ACTIONS */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                <div className="flex items-center gap-2">
+                  {selectedTeamForDetails.payment_status !== 'approved' && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const t = selectedTeamForDetails;
+                        setSelectedTeamForDetails(null);
+                        handleApprove(t);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center gap-1.5"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" /> Approve Registration
+                    </Button>
+                  )}
+                  {selectedTeamForDetails.payment_status !== 'rejected' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const t = selectedTeamForDetails;
+                        setSelectedTeamForDetails(null);
+                        setRejectingReg(t);
+                      }}
+                      className="border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-1.5"
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Reject Registration
+                    </Button>
+                  )}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTeamForDetails(null)}
+                  className="text-xs text-slate-400 hover:text-white"
                 >
                   Close
                 </Button>
