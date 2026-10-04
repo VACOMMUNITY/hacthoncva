@@ -80,11 +80,13 @@ export const Hackathon2026: React.FC = () => {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Fetch Settings on mount
+  // Fetch Settings on mount & auto-sync local registrations to cloud
   useEffect(() => {
     const fetchSettings = async () => {
       const data = await hackathonService.getSettings();
       setSettings(data);
+      // Auto-flush any registrations saved locally on this participant's browser to cloud database
+      hackathonService.syncLocalRegistrationsToCloud();
     };
     fetchSettings();
   }, []);

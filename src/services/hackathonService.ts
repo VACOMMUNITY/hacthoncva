@@ -790,6 +790,34 @@ export const hackathonService = {
     link.click();
     document.body.removeChild(link);
   },
+
+  // 12. Auto-sync any unsynced local registrations to Supabase cloud
+  async syncLocalRegistrationsToCloud(): Promise<number> {
+    const localList = getLocalRegistrations();
+    if (localList.length === 0) return 0;
+
+    let syncedCount = 0;
+    try {
+      for (const reg of localList) {
+        if (!reg?.team_id || reg.team_id.startsWith('CVA-HACK-MOCK')) continue;
+
+        try {
+          const res: any = await withTimeout(
+            supabase
+              .from('hackathon_registrations' as any)
+              .upsert(reg, { onConflict: 'team_id' }),
+            2000
+          );
+          if (res && !res.error) {
+            syncedCount++;
+          }
+        } catch {}
+      }
+    } catch (err) {
+      console.warn('Sync to cloud error:', err);
+    }
+    return syncedCount;
+  },
 };
 
 export interface ProjectSubmission {
