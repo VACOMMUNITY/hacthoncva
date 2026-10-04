@@ -34,6 +34,7 @@ import {
   Flame,
   Wand2,
   UploadCloud,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -226,6 +227,15 @@ export const Hackathon2026: React.FC = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/admin/hackathon"
+              className="border border-slate-700/80 hover:border-cyan-500/50 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all"
+              title="Hackathon Administration Portal"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="hidden sm:inline font-medium">Admin</span>
+            </Link>
+
             <Button
               variant="outline"
               size="sm"
@@ -1198,6 +1208,12 @@ export const Hackathon2026: React.FC = () => {
             >
               <Instagram className="h-4 w-4 text-cyan-400" /> @community.va
             </a>
+            <Link
+              to="/admin/hackathon"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-all text-xs font-semibold"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Admin Portal
+            </Link>
           </div>
 
           <div className="text-center md:text-right space-y-1 text-slate-500">

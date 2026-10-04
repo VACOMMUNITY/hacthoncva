@@ -106,6 +106,91 @@ const DEFAULT_SETTINGS: HackathonSettings = {
 
 const STORAGE_KEY_REGISTRATIONS = 'cva_hackathon_registrations';
 const STORAGE_KEY_SETTINGS = 'cva_hackathon_settings';
+const STORAGE_KEY_SUBMISSIONS = 'cva_hackathon_submissions';
+
+// IndexedDB Helper for high-capacity offline/persistent storage (surpasses 5MB quota)
+const IDB_NAME = 'cva_hackathon_db';
+const IDB_VERSION = 1;
+const IDB_STORE_REGISTRATIONS = 'registrations';
+const IDB_STORE_SUBMISSIONS = 'submissions';
+
+const openIDB = (): Promise<IDBDatabase | null> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return resolve(null);
+    }
+    try {
+      const request = window.indexedDB.open(IDB_NAME, IDB_VERSION);
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(IDB_STORE_REGISTRATIONS)) {
+          db.createObjectStore(IDB_STORE_REGISTRATIONS, { keyPath: 'team_id' });
+        }
+        if (!db.objectStoreNames.contains(IDB_STORE_SUBMISSIONS)) {
+          db.createObjectStore(IDB_STORE_SUBMISSIONS, { keyPath: 'team_id' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+};
+
+const saveToIDB = async (storeName: string, items: any[]): Promise<void> => {
+  try {
+    const db = await openIDB();
+    if (!db) return;
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    for (const item of items) {
+      if (item && item.team_id) {
+        store.put(item);
+      }
+    }
+  } catch (err) {
+    console.warn('IDB write error:', err);
+  }
+};
+
+const getFromIDB = async <T>(storeName: string): Promise<T[]> => {
+  try {
+    const db = await openIDB();
+    if (!db) return [];
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+};
+
+// Cross-tab and window live synchronization
+const notifyDataUpdate = (type: 'registration' | 'submission') => {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('cva_data_update', { detail: { type } }));
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('cva_hackathon_channel');
+        bc.postMessage({ type });
+        bc.close();
+      }
+    } catch {}
+  }
+};
+
+// Helper with timeout to prevent dead remote endpoints from stalling UI
+const withTimeout = <T>(promise: Promise<T>, ms = 1500): Promise<T | null> => {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+};
 
 // Helper to get local storage fallback
 const getLocalRegistrations = (): HackathonRegistration[] => {
@@ -118,25 +203,45 @@ const getLocalRegistrations = (): HackathonRegistration[] => {
 };
 
 const saveLocalRegistrations = (regs: HackathonRegistration[]) => {
+  // 1. Try to save full data to localStorage
   try {
     localStorage.setItem(STORAGE_KEY_REGISTRATIONS, JSON.stringify(regs));
   } catch (err) {
-    console.warn('LocalStorage save error:', err);
+    console.warn('LocalStorage save error, attempting lightweight fallback:', err);
+    try {
+      // Keep screenshot only on 3 most recent registrations to fit within 5MB quota
+      const lightweight = regs.map((r, idx) => {
+        if (idx > 2 && r.payment_screenshot_url?.startsWith('data:')) {
+          const { payment_screenshot_url, ...rest } = r;
+          return rest as HackathonRegistration;
+        }
+        return r;
+      });
+      localStorage.setItem(STORAGE_KEY_REGISTRATIONS, JSON.stringify(lightweight));
+    } catch (e2) {
+      console.warn('Secondary localStorage fallback error:', e2);
+    }
   }
+
+  // 2. Always persist full data into IndexedDB (virtually unlimited quota)
+  saveToIDB(IDB_STORE_REGISTRATIONS, regs);
 };
 
 export const hackathonService = {
   // 1. Get Settings
   async getSettings(): Promise<HackathonSettings> {
     try {
-      const { data, error } = await supabase
-        .from('hackathon_settings' as any)
-        .select('*')
-        .eq('id', 'config')
-        .single();
+      const res: any = await withTimeout(
+        supabase
+          .from('hackathon_settings' as any)
+          .select('*')
+          .eq('id', 'config')
+          .single(),
+        1500
+      );
 
-      if (!error && data) {
-        return { ...DEFAULT_SETTINGS, ...data } as HackathonSettings;
+      if (res && !res.error && res.data) {
+        return { ...DEFAULT_SETTINGS, ...res.data } as HackathonSettings;
       }
     } catch {
       // Supabase table not created yet; fallback gracefully
@@ -162,9 +267,12 @@ export const hackathonService = {
     } catch {}
 
     try {
-      await supabase
-        .from('hackathon_settings' as any)
-        .upsert(updated, { onConflict: 'id' });
+      await withTimeout(
+        supabase
+          .from('hackathon_settings' as any)
+          .upsert(updated, { onConflict: 'id' }),
+        1500
+      );
     } catch (err) {
       console.warn('Supabase settings update error (fallback active):', err);
     }
@@ -187,9 +295,12 @@ export const hackathonService = {
       created_at: new Date().toISOString(),
     };
 
-    // Save to local storage cache
+    // Save immediately to local storage cache & IndexedDB
     const currentList = getLocalRegistrations();
     saveLocalRegistrations([newReg, ...currentList]);
+
+    // Notify all open tabs/windows immediately
+    notifyDataUpdate('registration');
 
     // Update remaining early bird spots if applicable
     if (newReg.registration_phase === 'Early Bird') {
@@ -201,11 +312,14 @@ export const hackathonService = {
       }
     }
 
-    // Try saving to Supabase
+    // Try saving to Supabase with timeout
     try {
-      await supabase
-        .from('hackathon_registrations' as any)
-        .insert([newReg]);
+      await withTimeout(
+        supabase
+          .from('hackathon_registrations' as any)
+          .insert([newReg]),
+        2000
+      );
     } catch (err) {
       console.warn('Supabase registration insert error (local cached):', err);
     }
@@ -213,25 +327,25 @@ export const hackathonService = {
     return newReg;
   },
 
-  // 4. Upload Payment Screenshot with Sanitization & Whitelisting
+  // 4. Upload Payment Screenshot with Sanitization, Canvas Compression & Whitelisting
   async uploadPaymentProof(file: File, teamIdentifier: string): Promise<string> {
     try {
       const rawExt = (file.name.split('.').pop() || '').toLowerCase();
-      // Whitelist only safe image extensions
       const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt) ? rawExt : 'png';
-      // Path traversal protection: strip all non-alphanumeric chars
       const safeIdentifier = teamIdentifier.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'team';
       const fileName = `${safeIdentifier}-${Date.now()}.${safeExt}`;
       const filePath = `receipts/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const uploadPromise = supabase.storage
         .from('hackathon-receipts')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true,
         });
 
-      if (!error && data) {
+      const res: any = await withTimeout(uploadPromise, 1500);
+
+      if (res && !res.error && res.data) {
         const { data: publicUrlData } = supabase.storage
           .from('hackathon-receipts')
           .getPublicUrl(filePath);
@@ -240,37 +354,86 @@ export const hackathonService = {
         }
       }
     } catch (err) {
-      console.warn('Supabase storage upload failed, creating local data URL:', err);
+      console.warn('Supabase storage upload failed, compressing locally:', err);
     }
 
-    // Fallback to Data URL
+    // Fallback: Compress image via canvas to 800px max, 0.72 quality (~35-60KB) so it never breaches storage quota
     return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 850;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.72);
+              resolve(compressed);
+              return;
+            }
+          } catch {}
+          resolve(e.target?.result as string);
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
   },
 
   // 5. Get Registrations
   async getRegistrations(): Promise<HackathonRegistration[]> {
+    // 1. Get from localStorage
+    const localList = getLocalRegistrations();
+
+    // 2. Get from IndexedDB
+    const idbList = await getFromIDB<HackathonRegistration>(IDB_STORE_REGISTRATIONS);
+
+    // 3. Try Supabase with short timeout
     let remoteList: HackathonRegistration[] = [];
     try {
-      const { data, error } = await supabase
-        .from('hackathon_registrations' as any)
-        .select('*')
-        .order('created_at', { ascending: false });
+      const res: any = await withTimeout(
+        supabase
+          .from('hackathon_registrations' as any)
+          .select('*')
+          .order('created_at', { ascending: false }),
+        1800
+      );
 
-      if (!error && data && data.length > 0) {
-        remoteList = data as HackathonRegistration[];
+      if (res && !res.error && res.data && res.data.length > 0) {
+        remoteList = res.data as HackathonRegistration[];
       }
     } catch {}
 
-    const localList = getLocalRegistrations();
-
-    // Merge by team_id or id
+    // 4. Merge all by team_id
     const map = new Map<string, HackathonRegistration>();
-    localList.forEach((r) => map.set(r.team_id, r));
-    remoteList.forEach((r) => map.set(r.team_id, { ...map.get(r.team_id), ...r }));
+    idbList.forEach((r) => { if (r?.team_id) map.set(r.team_id, r); });
+    localList.forEach((r) => { if (r?.team_id) map.set(r.team_id, { ...(map.get(r.team_id) || {}), ...r }); });
+    remoteList.forEach((r) => { if (r?.team_id) map.set(r.team_id, { ...(map.get(r.team_id) || {}), ...r }); });
 
     const merged = Array.from(map.values());
     if (merged.length > 0) {

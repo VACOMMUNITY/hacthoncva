@@ -111,6 +111,30 @@ export const AdminHackathon: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // Listen for live updates whenever a team registers or submits in any tab/window
+    const handleUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('cva_data_update', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('cva_hackathon_channel');
+        channel.onmessage = () => handleUpdate();
+      } catch {}
+    }
+
+    return () => {
+      window.removeEventListener('cva_data_update', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      try {
+        channel?.close();
+      } catch {}
+    };
   }, []);
 
   // Stats Calculations
@@ -119,20 +143,55 @@ export const AdminHackathon: React.FC = () => {
   const pendingTeams = registrations.filter((r) => r.payment_status === 'pending');
   const totalRevenue = approvedTeams.reduce((sum, r) => sum + (r.amount || 0), 0);
 
-  // Filtered List
+  // Filtered List with safe null checks
   const filteredRegistrations = registrations.filter((r) => {
+    if (!r) return false;
     const matchesStatus =
       statusFilter === 'all' ? true : r.payment_status === statusFilter;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     const matchesQuery =
       !q ||
-      r.team_name.toLowerCase().includes(q) ||
-      r.leader_name.toLowerCase().includes(q) ||
-      r.email.toLowerCase().includes(q) ||
-      r.team_id.toLowerCase().includes(q) ||
-      r.college.toLowerCase().includes(q);
+      Boolean(r.team_name && r.team_name.toLowerCase().includes(q)) ||
+      Boolean(r.leader_name && r.leader_name.toLowerCase().includes(q)) ||
+      Boolean(r.email && r.email.toLowerCase().includes(q)) ||
+      Boolean(r.team_id && r.team_id.toLowerCase().includes(q)) ||
+      Boolean(r.college && r.college.toLowerCase().includes(q));
     return matchesStatus && matchesQuery;
   });
+
+  const handleCreateSampleRegistration = async () => {
+    try {
+      const sample = await hackathonService.registerTeam({
+        team_name: 'Neural Innovators',
+        leader_name: 'Abhi Ram',
+        phone: '9849046019',
+        email: 'abhiram@community.va',
+        college: 'Community Institute of Technology',
+        year: '3rd Year',
+        branch: 'Computer Science & AI',
+        track: 'Open Innovation',
+        team_members: [
+          { name: 'Kavya Sharma', email: 'kavya@gmail.com', role: 'ML Engineer' },
+          { name: 'Rahul Varma', email: 'rahul@gmail.com', role: 'Frontend Dev' },
+        ],
+        registration_phase: 'Early Bird',
+        amount: 299,
+        transaction_id: 'UPI9849046019PAY299',
+        payment_status: 'pending',
+      });
+      toast({
+        title: 'Sample Registration Created! 🎉',
+        description: `Team ${sample.team_name} (${sample.team_id}) is now listed in the dashboard.`,
+      });
+      loadData();
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to create sample registration.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Actions
   const handleApprove = async (reg: HackathonRegistration) => {
@@ -461,8 +520,16 @@ export const AdminHackathon: React.FC = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                          No registrations found matching criteria.
+                        <td colSpan={8} className="p-8 text-center text-muted-foreground space-y-3">
+                          <p className="text-sm">No registrations found matching criteria.</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCreateSampleRegistration}
+                            className="text-xs border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10"
+                          >
+                            + Add Sample Team Registration
+                          </Button>
                         </td>
                       </tr>
                     )}
