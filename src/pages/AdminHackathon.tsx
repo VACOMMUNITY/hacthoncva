@@ -46,6 +46,9 @@ import {
   Phone,
   Copy,
   UserCheck,
+  QrCode,
+  Ticket,
+  PlusCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -76,6 +79,24 @@ export const AdminHackathon: React.FC = () => {
   // Reject Dialog
   const [rejectingReg, setRejectingReg] = useState<HackathonRegistration | null>(null);
   const [rejectionReason, setRejectionReason] = useState('Payment receipt could not be verified.');
+
+  // Quick Pass Lookup & Admit Modal State
+  const [isPassLookupOpen, setIsPassLookupOpen] = useState(false);
+  const [passLookupQuery, setPassLookupQuery] = useState('');
+
+  // Manual Team Admit State
+  const [manualTeamModalOpen, setManualTeamModalOpen] = useState(false);
+  const [manTeamName, setManTeamName] = useState('');
+  const [manLeaderName, setManLeaderName] = useState('');
+  const [manPhone, setManPhone] = useState('');
+  const [manEmail, setManEmail] = useState('');
+  const [manCollege, setManCollege] = useState('');
+  const [manBranch, setManBranch] = useState('CSE');
+  const [manYear, setManYear] = useState('3rd Year');
+  const [manTrack, setManTrack] = useState('Education AI');
+  const [manTeamId, setManTeamId] = useState('');
+  const [manTeammates, setManTeammates] = useState('');
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
   // Settings Form State
   const [eventDate, setEventDate] = useState('');
@@ -197,6 +218,78 @@ export const AdminHackathon: React.FC = () => {
         description: 'Failed to create sample registration.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleSaveManualTeam = async () => {
+    if (!manTeamName.trim() || !manLeaderName.trim() || !manCollege.trim()) {
+      toast({
+        title: 'Missing Required Fields',
+        description: 'Please provide Team Name, Leader Name, and College.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmittingManual(true);
+    try {
+      const teammateList = manTeammates
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((name, i) => ({
+          name,
+          email: `${name.toLowerCase().replace(/\s+/g, '.')}@college.edu`,
+          role: `Member #${i + 2}`,
+        }));
+
+      const teamCode = manTeamId.trim() || `CVA-HACK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      await hackathonService.registerTeam({
+        team_name: manTeamName.trim(),
+        leader_name: manLeaderName.trim(),
+        phone: manPhone.trim() || '9849046019',
+        email: manEmail.trim().toLowerCase() || `${manLeaderName.toLowerCase().replace(/\s+/g, '.')}@college.edu`,
+        college: manCollege.trim(),
+        year: manYear,
+        branch: manBranch.trim() || 'Engineering',
+        track: manTrack,
+        team_members: [
+          {
+            name: manLeaderName.trim(),
+            email: manEmail.trim().toLowerCase() || `${manLeaderName.toLowerCase().replace(/\s+/g, '.')}@college.edu`,
+            role: 'Team Leader',
+          },
+          ...teammateList,
+        ],
+        registration_phase: 'Early Bird',
+        amount: 299,
+        payment_status: 'approved',
+        transaction_id: `VERIFIED-PASS-${teamCode}`,
+      });
+
+      toast({
+        title: 'Team Successfully Admitted! 🎉',
+        description: `${manTeamName} (${teamCode}) is now registered and verified in the dashboard.`,
+      });
+
+      setManualTeamModalOpen(false);
+      setManTeamName('');
+      setManLeaderName('');
+      setManPhone('');
+      setManEmail('');
+      setManCollege('');
+      setManTeamId('');
+      setManTeammates('');
+      loadData();
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to admit team.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmittingManual(false);
     }
   };
 
@@ -365,14 +458,32 @@ export const AdminHackathon: React.FC = () => {
                   Review payment screenshots, approve verified registrations, or reject with feedback.
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => hackathonService.exportCSV(registrations)}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" /> Export CSV ({registrations.length})
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPassLookupOpen(true)}
+                  className="flex items-center gap-1.5 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 text-xs font-semibold"
+                >
+                  <QrCode className="h-3.5 w-3.5" /> Look up Pass
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setManualTeamModalOpen(true)}
+                  className="flex items-center gap-1.5 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 text-xs font-semibold"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" /> + Admit Team
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => hackathonService.exportCSV(registrations)}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <Download className="h-4 w-4" /> Export CSV ({registrations.length})
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Search & Filter Bar */}
@@ -1326,6 +1437,240 @@ export const AdminHackathon: React.FC = () => {
               </Button>
               <Button variant="destructive" onClick={handleConfirmReject}>
                 Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QUICK PASS LOOKUP MODAL */}
+      <Dialog open={isPassLookupOpen} onOpenChange={setIsPassLookupOpen}>
+        <DialogContent className="max-w-lg bg-slate-950 border border-cyan-500/30 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
+              <QrCode className="h-5 w-5 text-cyan-400" /> Look up Event Pass or Team ID
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Enter any Team ID (e.g. CVA-HACK-6184), team name, or leader name to instantly fetch their pass and verification status.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-300">Team ID, Name, or Leader</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="e.g. CVA-HACK-6184 or DATA DRIFT"
+                  value={passLookupQuery}
+                  onChange={(e) => setPassLookupQuery(e.target.value)}
+                  className="pl-9 bg-slate-900 border-slate-700 text-white font-mono text-sm focus:border-cyan-400"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Live Search Results */}
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {(() => {
+                const q = passLookupQuery.trim().toLowerCase();
+                const matches = q
+                  ? registrations.filter(
+                      (r) =>
+                        r.team_id.toLowerCase().includes(q) ||
+                        r.team_name.toLowerCase().includes(q) ||
+                        r.leader_name.toLowerCase().includes(q) ||
+                        r.college.toLowerCase().includes(q)
+                    )
+                  : registrations.slice(0, 5);
+
+                if (matches.length > 0) {
+                  return matches.map((m) => (
+                    <div
+                      key={m.id}
+                      className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/40 flex items-center justify-between gap-3 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm truncate">{m.team_name}</span>
+                          <span className="font-mono text-xs text-cyan-400 font-semibold">{m.team_id}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 truncate">
+                          Leader: <span className="text-slate-200">{m.leader_name}</span> • {m.college}
+                        </p>
+                        <p className="text-[11px] text-cyan-500/80 font-mono mt-0.5">{m.track}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setIsPassLookupOpen(false);
+                          setSelectedTeamForDetails(m);
+                        }}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs shrink-0"
+                      >
+                        View Pass Details
+                      </Button>
+                    </div>
+                  ));
+                }
+
+                if (q) {
+                  return (
+                    <div className="text-center p-4 rounded-xl bg-slate-900/40 border border-dashed border-slate-800 space-y-3">
+                      <p className="text-xs text-slate-400">
+                        No team found matching <span className="font-mono text-cyan-400">"{passLookupQuery}"</span>.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setManTeamId(passLookupQuery.toUpperCase());
+                          setIsPassLookupOpen(false);
+                          setManualTeamModalOpen(true);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                      >
+                        + Admit Team as "{passLookupQuery.toUpperCase()}"
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MANUAL ADMIT TEAM MODAL */}
+      <Dialog open={manualTeamModalOpen} onOpenChange={setManualTeamModalOpen}>
+        <DialogContent className="max-w-lg bg-slate-950 border border-emerald-500/30 text-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
+              <PlusCircle className="h-5 w-5 text-emerald-400" /> Admit & Verify Team
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Directly admit a participant team with confirmed payment into the admin dashboard and official roster.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">Team Name *</Label>
+                <Input
+                  placeholder="e.g. DATA DRIFT"
+                  value={manTeamName}
+                  onChange={(e) => setManTeamName(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">Team ID / Pass Code</Label>
+                <Input
+                  placeholder="e.g. CVA-HACK-6184"
+                  value={manTeamId}
+                  onChange={(e) => setManTeamId(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-cyan-400 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">Leader Name *</Label>
+                <Input
+                  placeholder="e.g. M.SIDDARDHA"
+                  value={manLeaderName}
+                  onChange={(e) => setManLeaderName(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">Leader Mobile *</Label>
+                <Input
+                  placeholder="10-digit phone"
+                  value={manPhone}
+                  onChange={(e) => setManPhone(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-300">Leader Email</Label>
+              <Input
+                placeholder="leader@college.edu"
+                value={manEmail}
+                onChange={(e) => setManEmail(e.target.value)}
+                className="bg-slate-900 border-slate-700 text-white"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">College Name *</Label>
+                <Input
+                  placeholder="e.g. MVSR"
+                  value={manCollege}
+                  onChange={(e) => setManCollege(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-300">Branch</Label>
+                <Input
+                  placeholder="e.g. CSE"
+                  value={manBranch}
+                  onChange={(e) => setManBranch(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-300">Track</Label>
+              <Select value={manTrack} onValueChange={setManTrack}>
+                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                  <SelectItem value="Education AI">🎓 Education AI</SelectItem>
+                  <SelectItem value="Healthcare AI">🏥 Healthcare AI</SelectItem>
+                  <SelectItem value="Agriculture AI">🌱 Agriculture AI</SelectItem>
+                  <SelectItem value="Smart City AI">🏙️ Smart City AI</SelectItem>
+                  <SelectItem value="Accessibility AI">♿ Accessibility AI</SelectItem>
+                  <SelectItem value="Open Innovation">🚀 Open Innovation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-300">Teammate Names (1 per line)</Label>
+              <Textarea
+                placeholder="Teammate 2&#10;Teammate 3"
+                value={manTeammates}
+                onChange={(e) => setManTeammates(e.target.value)}
+                className="bg-slate-900 border-slate-700 text-white text-xs h-16"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setManualTeamModalOpen(false)}
+                className="border-slate-700 text-slate-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveManualTeam}
+                disabled={isSubmittingManual}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+              >
+                {isSubmittingManual ? 'Admitting...' : 'Admit & Verify Team'}
               </Button>
             </div>
           </div>

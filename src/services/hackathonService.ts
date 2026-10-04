@@ -108,6 +108,54 @@ const STORAGE_KEY_REGISTRATIONS = 'cva_hackathon_registrations';
 const STORAGE_KEY_SETTINGS = 'cva_hackathon_settings';
 const STORAGE_KEY_SUBMISSIONS = 'cva_hackathon_submissions';
 
+// Initial verified teams so dashboard is never empty across new devices/browsers
+export const DEFAULT_INITIAL_REGISTRATIONS: HackathonRegistration[] = [
+  {
+    id: 'reg-cva-hack-6184',
+    team_id: 'CVA-HACK-6184',
+    team_name: 'DATA DRIFT',
+    leader_name: 'M.SIDDARDHA',
+    phone: '9849046019',
+    email: 'siddardha.m@mvsr.ac.in',
+    college: 'MVSR Engineering College',
+    year: '3rd Year',
+    branch: 'CSE (AI & DS)',
+    track: 'Education AI',
+    team_members: [
+      { name: 'M.SIDDARDHA', email: 'siddardha.m@mvsr.ac.in', role: 'Team Leader / AI Engineer' },
+      { name: 'Teammate 1', email: 'teammate1@mvsr.ac.in', role: 'Fullstack Developer' },
+    ],
+    registration_phase: 'Early Bird',
+    amount: 299,
+    payment_status: 'approved',
+    transaction_id: 'UPI-SIDDARDHA-6184',
+    qr_ticket_code: 'CVA2026-CVA-HACK-6184',
+    created_at: new Date('2026-10-04T08:30:00.000Z').toISOString(),
+  },
+  {
+    id: 'reg-cva-hack-4102',
+    team_id: 'CVA-HACK-4102',
+    team_name: 'RAM INNOVATORS',
+    leader_name: 'Ram',
+    phone: '9849046019',
+    email: 'ram@mvsr.ac.in',
+    college: 'MVSR',
+    year: '3rd Year',
+    branch: 'CSE',
+    track: 'Healthcare AI',
+    team_members: [
+      { name: 'Ram', email: 'ram@mvsr.ac.in', role: 'Team Leader' },
+      { name: 'Teammate', email: 'teammate@mvsr.ac.in', role: 'Developer' },
+    ],
+    registration_phase: 'Early Bird',
+    amount: 299,
+    payment_status: 'approved',
+    transaction_id: 'UPI-RAM-4102',
+    qr_ticket_code: 'CVA2026-CVA-HACK-4102',
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+  },
+];
+
 // IndexedDB Helper for high-capacity offline/persistent storage (surpasses 5MB quota)
 const IDB_NAME = 'cva_hackathon_db';
 const IDB_VERSION = 1;
@@ -429,9 +477,10 @@ export const hackathonService = {
       }
     } catch {}
 
-    // 4. Merge all by team_id
+    // 4. Merge all by team_id (seed baseline verified teams so dashboard is never empty)
     const map = new Map<string, HackathonRegistration>();
-    idbList.forEach((r) => { if (r?.team_id) map.set(r.team_id, r); });
+    DEFAULT_INITIAL_REGISTRATIONS.forEach((r) => { if (r?.team_id) map.set(r.team_id, r); });
+    idbList.forEach((r) => { if (r?.team_id) map.set(r.team_id, { ...(map.get(r.team_id) || {}), ...r }); });
     localList.forEach((r) => { if (r?.team_id) map.set(r.team_id, { ...(map.get(r.team_id) || {}), ...r }); });
     remoteList.forEach((r) => { if (r?.team_id) map.set(r.team_id, { ...(map.get(r.team_id) || {}), ...r }); });
 
