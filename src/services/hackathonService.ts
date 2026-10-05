@@ -240,6 +240,42 @@ const withTimeout = <T>(promise: Promise<T>, ms = 1500): Promise<T | null> => {
   ]);
 };
 
+// Map public.registrations DB row to HackathonRegistration UI model
+const mapRowToRegistration = (row: any): HackathonRegistration => {
+  let teamId = row.team_id;
+  if (!teamId) {
+    if (row.qr_ticket_code && row.qr_ticket_code.includes('CVA-HACK-')) {
+      teamId = row.qr_ticket_code.match(/CVA-HACK-[\w-]+/)?.[0] || row.qr_ticket_code;
+    } else {
+      teamId = `CVA-HACK-${(row.id || '').replace(/-/g, '').slice(0, 4).toUpperCase()}`;
+    }
+  }
+
+  return {
+    id: row.id,
+    team_id: teamId,
+    team_name: row.team_name || row.name || 'Team',
+    leader_name: row.name || row.leader_name || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    college: row.college || '',
+    branch: row.branch || '',
+    year: row.year || '',
+    track: row.track || 'Open Innovation',
+    team_members: Array.isArray(row.team_members) ? row.team_members : [],
+    registration_phase: (row.registration_phase as any) || 'Early Bird',
+    amount: Number(row.amount) || 299,
+    payment_status: (row.payment_status as any) || 'pending',
+    payment_screenshot_url: row.payment_screenshot_url || undefined,
+    transaction_id: row.transaction_id || undefined,
+    qr_ticket_code: row.qr_ticket_code || undefined,
+    rejection_reason: row.rejection_reason || undefined,
+    user_id: row.user_id || undefined,
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: row.updated_at || undefined,
+  };
+};
+
 // Helper to get local storage fallback
 const getLocalRegistrations = (): HackathonRegistration[] => {
   try {
@@ -360,16 +396,64 @@ export const hackathonService = {
       }
     }
 
-    // Try saving to Supabase with timeout
+    // Try saving to Supabase registrations table
+    const dbPayload = {
+      event_id: 'cva-hackathon-2026',
+      name: payload.leader_name || payload.team_name,
+      email: payload.email.trim().toLowerCase(),
+      phone: payload.phone.trim().replace(/\D/g, ''),
+      college: payload.college,
+      branch: payload.branch,
+      year: payload.year,
+      team_name: payload.team_name,
+      payment_status: payload.payment_status || 'pending',
+      team_members: (payload.team_members || []) as any,
+      track: payload.track || 'Open Innovation',
+      amount: payload.amount || 299,
+      registration_phase: payload.registration_phase || 'Early Bird',
+      transaction_id: payload.transaction_id || null,
+      payment_screenshot_url: payload.payment_screenshot_url || null,
+      qr_ticket_code: newReg.qr_ticket_code,
+    };
+
     try {
-      await withTimeout(
-        supabase
-          .from('hackathon_registrations' as any)
-          .insert([newReg]),
-        2000
-      );
-    } catch (err) {
-      console.warn('Supabase registration insert error (local cached):', err);
+      const { error } = await supabase
+        .from('registrations')
+        .insert([dbPayload]);
+
+      if (error) {
+        const errMsg = (error.message || '').toLowerCase();
+        const errDetails = (error.details || '').toLowerCase();
+        if (
+          error.code === '23505' ||
+          errMsg.includes('uq_registrations_event_email') ||
+          errDetails.includes('uq_registrations_event_email') ||
+          errMsg.includes('email')
+        ) {
+          throw new Error('This email address is already registered for this event. Each participant or team leader can only register once.');
+        }
+        if (
+          error.code === '23505' ||
+          errMsg.includes('uq_registrations_event_phone') ||
+          errDetails.includes('uq_registrations_event_phone') ||
+          errMsg.includes('phone')
+        ) {
+          throw new Error('This mobile number is already registered for this event. Please use a different phone number.');
+        }
+        if (error.code === '23505') {
+          throw new Error('A team has already registered with this email or phone number for this event.');
+        }
+        console.warn('Supabase registration insert warning:', error);
+      }
+    } catch (err: any) {
+      if (err.message && (
+        err.message.includes('already registered') ||
+        err.message.includes('duplicate') ||
+        err.message.includes('unique')
+      )) {
+        throw err;
+      }
+      console.warn('Supabase remote write error (persisted locally):', err);
     }
 
     return newReg;
@@ -462,18 +546,31 @@ export const hackathonService = {
     const idbList = await getFromIDB<HackathonRegistration>(IDB_STORE_REGISTRATIONS);
 
     // 3. Try Supabase with short timeout
+    // 3. Try Supabase registrations table with timeout
     let remoteList: HackathonRegistration[] = [];
     try {
       const res: any = await withTimeout(
         supabase
-          .from('hackathon_registrations' as any)
+          .from('registrations' as any)
           .select('*')
           .order('created_at', { ascending: false }),
-        1800
+        2500
       );
 
       if (res && !res.error && res.data && res.data.length > 0) {
-        remoteList = res.data as HackathonRegistration[];
+        remoteList = res.data.map(mapRowToRegistration);
+      } else {
+        // Backward-compatible fallback if legacy table exists
+        const legacyRes: any = await withTimeout(
+          supabase
+            .from('hackathon_registrations' as any)
+            .select('*')
+            .order('created_at', { ascending: false }),
+          1500
+        );
+        if (legacyRes && !legacyRes.error && legacyRes.data && legacyRes.data.length > 0) {
+          remoteList = legacyRes.data as HackathonRegistration[];
+        }
       }
     } catch {}
 
@@ -510,13 +607,13 @@ export const hackathonService = {
 
     try {
       await supabase
-        .from('hackathon_registrations' as any)
+        .from('registrations' as any)
         .update({
           payment_status: status,
           rejection_reason: rejectionReason || null,
           updated_at: new Date().toISOString(),
         })
-        .or(`id.eq.${id},team_id.eq.${id}`);
+        .or(`id.eq.${id},qr_ticket_code.ilike.%${id}%,team_name.eq.${id}`);
     } catch (err) {
       console.warn('Supabase status update error:', err);
     }
@@ -802,10 +899,29 @@ export const hackathonService = {
         if (!reg?.team_id || reg.team_id.startsWith('CVA-HACK-MOCK')) continue;
 
         try {
+          const dbPayload = {
+            event_id: 'cva-hackathon-2026',
+            name: reg.leader_name || reg.team_name,
+            email: reg.email?.trim().toLowerCase(),
+            phone: reg.phone?.trim().replace(/\D/g, '') || '',
+            college: reg.college || '',
+            branch: reg.branch || '',
+            year: reg.year || '',
+            team_name: reg.team_name,
+            payment_status: reg.payment_status || 'pending',
+            team_members: reg.team_members || [],
+            track: reg.track || 'Open Innovation',
+            amount: reg.amount || 299,
+            registration_phase: reg.registration_phase || 'Early Bird',
+            transaction_id: reg.transaction_id || null,
+            payment_screenshot_url: reg.payment_screenshot_url || null,
+            qr_ticket_code: reg.qr_ticket_code || reg.team_id,
+          };
+
           const res: any = await withTimeout(
             supabase
-              .from('hackathon_registrations' as any)
-              .upsert(reg, { onConflict: 'team_id' }),
+              .from('registrations' as any)
+              .insert([dbPayload]),
             2000
           );
           if (res && !res.error) {

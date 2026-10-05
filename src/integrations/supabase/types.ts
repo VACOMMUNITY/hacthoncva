@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      registrations: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          email: string
+          phone: string
+          college: string
+          branch: string
+          year: string
+          team_name: string
+          payment_status: string
+          team_members: Json
+          track: string | null
+          amount: number | null
+          registration_phase: string | null
+          transaction_id: string | null
+          payment_screenshot_url: string | null
+          qr_ticket_code: string | null
+          rejection_reason: string | null
+          user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id?: string
+          name: string
+          email: string
+          phone: string
+          college: string
+          branch: string
+          year: string
+          team_name: string
+          payment_status?: string
+          team_members?: Json
+          track?: string | null
+          amount?: number | null
+          registration_phase?: string | null
+          transaction_id?: string | null
+          payment_screenshot_url?: string | null
+          qr_ticket_code?: string | null
+          rejection_reason?: string | null
+          user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          name?: string
+          email?: string
+          phone?: string
+          college?: string
+          branch?: string
+          year?: string
+          team_name?: string
+          payment_status?: string
+          team_members?: Json
+          track?: string | null
+          amount?: number | null
+          registration_phase?: string | null
+          transaction_id?: string | null
+          payment_screenshot_url?: string | null
+          qr_ticket_code?: string | null
+          rejection_reason?: string | null
+          user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string

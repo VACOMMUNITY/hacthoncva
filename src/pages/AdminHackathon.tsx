@@ -69,6 +69,7 @@ export const AdminHackathon: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [submissionSearch, setSubmissionSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [eventFilter, setEventFilter] = useState<'all' | 'cva-hackathon-2026'>('all');
 
   // Proof Modal
   const [selectedProofReg, setSelectedProofReg] = useState<HackathonRegistration | null>(null);
@@ -176,6 +177,8 @@ export const AdminHackathon: React.FC = () => {
     if (!r) return false;
     const matchesStatus =
       statusFilter === 'all' ? true : r.payment_status === statusFilter;
+    const matchesEvent =
+      eventFilter === 'all' ? true : ((r as any).event_id ? (r as any).event_id === eventFilter : true);
     const q = searchQuery.trim().toLowerCase();
     const matchesQuery =
       !q ||
@@ -184,7 +187,7 @@ export const AdminHackathon: React.FC = () => {
       Boolean(r.email && r.email.toLowerCase().includes(q)) ||
       Boolean(r.team_id && r.team_id.toLowerCase().includes(q)) ||
       Boolean(r.college && r.college.toLowerCase().includes(q));
-    return matchesStatus && matchesQuery;
+    return matchesStatus && matchesEvent && matchesQuery;
   });
 
   const handleCreateSampleRegistration = async () => {
@@ -509,6 +512,18 @@ export const AdminHackathon: React.FC = () => {
                     <SelectItem value="pending">Pending Verification</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={eventFilter}
+                  onValueChange={(val: any) => setEventFilter(val)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    <SelectItem value="cva-hackathon-2026">AI Hackathon 2026</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
