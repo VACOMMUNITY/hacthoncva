@@ -141,7 +141,7 @@ export const Hackathon2026: React.FC = () => {
     const text = encodeURIComponent(
       `🚀 Join the COMMUNITY.VA AI Innovation Hackathon 2026!\n` +
       `📅 Date: 9 October 2026 (24 Hours Online)\n` +
-      `🏆 Prizes: ₹10,000 Winner + ₹5,000 Runner-Up + ₹3,000 2nd Runner-Up!\n` +
+      `🏆 Prizes: Exciting Cash Prizes for Winners & Runners-Up!\n` +
       `⚡ Early Bird: ₹299 (Only ${settings?.early_bird_remaining ?? 31} spots left!)\n` +
       `👉 Register now: ${window.location.href}`
     );
@@ -558,7 +558,7 @@ export const Hackathon2026: React.FC = () => {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
-                    Eligible for ₹10,000 Winner & Runner-up Prizes
+                    Eligible for Winner & Runner-up Cash Prizes
                   </li>
                 </ul>
               </div>
@@ -776,8 +776,8 @@ export const Hackathon2026: React.FC = () => {
                   </span>
                   <h3 className="text-2xl font-black text-white">WINNER</h3>
                 </div>
-                <div className="text-4xl sm:text-5xl font-black text-amber-400 font-mono tracking-tight">
-                  ₹{settings?.prize_winner?.toLocaleString() ?? '10,000'}
+                <div className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-wide uppercase">
+                  Cash Prize
                 </div>
                 <p className="text-xs text-amber-200/90 font-medium">
                   Grand Trophy + Official Certificates of Excellence
@@ -803,8 +803,8 @@ export const Hackathon2026: React.FC = () => {
                   </span>
                   <h3 className="text-xl font-bold text-white">RUNNER-UP</h3>
                 </div>
-                <div className="text-3xl sm:text-4xl font-black text-slate-100 font-mono">
-                  ₹{settings?.prize_runner_up?.toLocaleString() ?? '5,000'}
+                <div className="text-2xl sm:text-3xl font-black text-slate-100 font-mono tracking-wide uppercase">
+                  Cash Prize
                 </div>
                 <p className="text-xs text-slate-300">
                   Runner-Up Trophy + Certificates
@@ -830,8 +830,8 @@ export const Hackathon2026: React.FC = () => {
                   </span>
                   <h3 className="text-xl font-bold text-white">SECOND RUNNER-UP</h3>
                 </div>
-                <div className="text-3xl sm:text-4xl font-black text-amber-500 font-mono">
-                  ₹{settings?.prize_second_runner_up?.toLocaleString() ?? '3,000'}
+                <div className="text-2xl sm:text-3xl font-black text-amber-500 font-mono tracking-wide uppercase">
+                  Cash Prize
                 </div>
                 <p className="text-xs text-slate-300">
                   Honor Trophy + Certificates
