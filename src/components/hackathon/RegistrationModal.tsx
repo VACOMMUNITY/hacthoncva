@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
