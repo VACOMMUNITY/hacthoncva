@@ -18,9 +18,8 @@ import {
   Video,
   Presentation,
   CheckCircle2,
-  AlertCircle,
   Loader2,
-  Search,
+  Users,
   Code2,
   Cpu,
   Layers,
@@ -64,9 +63,6 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
 }) => {
   const { toast } = useToast();
   const [teamId, setTeamId] = useState(initialTeamId);
-  const [teamVerified, setTeamVerified] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
 
   // Form State
   const [teamName, setTeamName] = useState('');
@@ -92,66 +88,25 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
     if (isOpen) {
       if (initialTeamId) {
         setTeamId(initialTeamId);
-        handleVerifyTeam(initialTeamId);
+        hackathonService.getProjectSubmissionByTeamId(initialTeamId).then((existing) => {
+          if (existing) {
+            setProjectTitle(existing.project_title);
+            setTrack(existing.track);
+            setTagline(existing.tagline);
+            setDescription(existing.description);
+            setSelectedAITools(existing.ai_tools || []);
+            setTechStackInput(existing.tech_stack?.join(', ') || '');
+            setGithubUrl(existing.github_url);
+            setDemoUrl(existing.demo_url || '');
+            setVideoUrl(existing.video_url || '');
+            setPresentationUrl(existing.presentation_url || '');
+          }
+        }).catch(() => {});
       }
     } else {
       setSubmittedProject(null);
     }
   }, [isOpen, initialTeamId]);
-
-  const handleVerifyTeam = async (idToVerify?: string) => {
-    const query = (idToVerify || teamId).trim();
-    if (!query) {
-      toast({
-        title: 'Team ID Required',
-        description: 'Please enter your Team ID or registered email address.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsVerifying(true);
-    setVerifyMessage(null);
-    try {
-      const reg = await hackathonService.findRegistration(query);
-      if (reg) {
-        setTeamVerified(true);
-        setTeamId(reg.team_id);
-        setTeamName(reg.team_name);
-        setLeaderName(reg.leader_name);
-        setLeaderEmail(reg.email);
-        if (reg.track) setTrack(reg.track);
-        setVerifyMessage(`Verified: ${reg.team_name} (Leader: ${reg.leader_name})`);
-
-        // Check if already submitted
-        const existing = await hackathonService.getProjectSubmissionByTeamId(reg.team_id);
-        if (existing) {
-          setProjectTitle(existing.project_title);
-          setTrack(existing.track);
-          setTagline(existing.tagline);
-          setDescription(existing.description);
-          setSelectedAITools(existing.ai_tools || []);
-          setTechStackInput(existing.tech_stack?.join(', ') || '');
-          setGithubUrl(existing.github_url);
-          setDemoUrl(existing.demo_url || '');
-          setVideoUrl(existing.video_url || '');
-          setPresentationUrl(existing.presentation_url || '');
-          toast({
-            title: 'Existing Submission Loaded',
-            description: 'You can update your submission details before the deadline.',
-          });
-        }
-      } else {
-        setTeamVerified(false);
-        setVerifyMessage('Registration not found. You can still submit by filling team details.');
-      }
-    } catch {
-      setTeamVerified(false);
-      setVerifyMessage('Could not verify team. You can continue manually.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   const toggleAITool = (tool: string) => {
     setSelectedAITools((prev) =>
@@ -173,8 +128,10 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!teamId.trim()) {
-      toast({ title: 'Team ID required', description: 'Please provide your Team ID.', variant: 'destructive' });
+    const finalTeamId = teamId.trim() || (teamName.trim() ? `TEAM-${teamName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)}` : '');
+
+    if (!finalTeamId) {
+      toast({ title: 'Team ID or Name required', description: 'Please enter your Team ID or Team Name.', variant: 'destructive' });
       return;
     }
     if (!projectTitle.trim()) {
@@ -197,9 +154,11 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
       .map((t) => t.trim())
       .filter(Boolean);
 
+    const finalTeamName = teamName.trim() || `Team ${finalTeamId}`;
+
     const payload = {
-      team_id: teamId.trim(),
-      team_name: teamName.trim() || `Team ${teamId}`,
+      team_id: finalTeamId,
+      team_name: finalTeamName,
       leader_name: leaderName.trim() || 'Team Leader',
       leader_email: leaderEmail.trim() || 'leader@community.va',
       project_title: projectTitle.trim(),
@@ -313,56 +272,30 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
         ) : (
           /* SUBMISSION FORM */
           <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-            {/* Step 1: Team Identification */}
+            {/* Step 1: Team Details */}
             <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs uppercase tracking-wider text-cyan-400 font-mono font-bold flex items-center gap-1.5">
-                  <Search className="h-3.5 w-3.5" />
-                  1. Team Verification
-                </Label>
-                {teamVerified && (
-                  <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="h-3 w-3" /> Verified Team
-                  </span>
-                )}
-              </div>
+              <Label className="text-xs uppercase tracking-wider text-cyan-400 font-mono font-bold flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                1. Team Details
+              </Label>
 
-              <div className="flex gap-2">
-                <Input
-                  value={teamId}
-                  onChange={(e) => {
-                    setTeamId(e.target.value);
-                    setTeamVerified(false);
-                  }}
-                  placeholder="Enter Team ID (e.g. CVA-AI-123456) or Email"
-                  className="bg-slate-950 border-slate-700 text-white font-mono text-sm placeholder:text-slate-600 focus:border-cyan-400"
-                />
-                <Button
-                  type="button"
-                  onClick={() => handleVerifyTeam()}
-                  disabled={isVerifying || !teamId.trim()}
-                  variant="outline"
-                  className="border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10 text-xs shrink-0"
-                >
-                  {isVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Verify'}
-                </Button>
-              </div>
-
-              {verifyMessage && (
-                <p className="text-xs text-slate-400 font-mono flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3 text-cyan-400" /> {verifyMessage}
-                </p>
-              )}
-
-              {/* Basic team details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-[11px] text-slate-400">Team Name</Label>
+                  <Label className="text-[11px] text-slate-400">Team ID (Optional)</Label>
+                  <Input
+                    value={teamId}
+                    onChange={(e) => setTeamId(e.target.value)}
+                    placeholder="e.g. CVA-AI-123456"
+                    className="bg-slate-950 border-slate-800 text-xs text-white font-mono placeholder:text-slate-600 focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] text-slate-400">Team Name *</Label>
                   <Input
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                     placeholder="e.g. Neural Nexus"
-                    className="bg-slate-950/80 border-slate-800 text-xs text-white"
+                    className="bg-slate-950 border-slate-800 text-xs text-white placeholder:text-slate-600 focus:border-cyan-400"
                   />
                 </div>
                 <div>
@@ -371,7 +304,7 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
                     value={leaderName}
                     onChange={(e) => setLeaderName(e.target.value)}
                     placeholder="Team Leader"
-                    className="bg-slate-950/80 border-slate-800 text-xs text-white"
+                    className="bg-slate-950 border-slate-800 text-xs text-white placeholder:text-slate-600 focus:border-cyan-400"
                   />
                 </div>
                 <div>
@@ -381,7 +314,7 @@ export const ProjectSubmissionModal: React.FC<ProjectSubmissionModalProps> = ({
                     value={leaderEmail}
                     onChange={(e) => setLeaderEmail(e.target.value)}
                     placeholder="leader@gmail.com"
-                    className="bg-slate-950/80 border-slate-800 text-xs text-white"
+                    className="bg-slate-950 border-slate-800 text-xs text-white placeholder:text-slate-600 focus:border-cyan-400"
                   />
                 </div>
               </div>
